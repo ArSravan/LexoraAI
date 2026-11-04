@@ -1,0 +1,10 @@
+# Pinned to the versions the test suite was last run with (Python 3.11+).
+# More dependencies are added in the commit that first needs them.
+pymupdf==2.1
+pydantic==2.14.2
+python-dotenv==1.2.4
+
+# tests / fixtures
+pytest==9.2.0
+reportlab==5.1.0
+pillow==13.0.0

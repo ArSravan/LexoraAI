@@ -1,0 +1,1 @@
+"""Lexora AI - evidence-grounded legal document analyst."""
