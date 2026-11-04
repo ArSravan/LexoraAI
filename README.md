@@ -9,7 +9,7 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 ## What exists so far
 
 - [x] Project skeleton, pinned dependencies
-- [ ] Settings
+- [x] Settings
 - [ ] Data models
 - [ ] PDF validation and text extraction (PyMuPDF)
 - [ ] OCR for scanned pages (Tesseract), tables, legal structure detection, chunking
