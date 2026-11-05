@@ -20,6 +20,7 @@ class TextLine(BaseModel):
     size: float = 0.0                       # mean font size (0 for OCR text)
     method: Literal["digital", "ocr"] = "digital"
     confidence: float | None = None         # OCR only, 0-100
+    is_footnote: bool = False               # set by the footnote detector
 
 
 class ParsedPage(BaseModel):

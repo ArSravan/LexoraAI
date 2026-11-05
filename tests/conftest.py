@@ -7,11 +7,11 @@ from reportlab.pdfgen import canvas
 
 
 def make_pdf(path: Path, pages: list[list[tuple[float, float, str]]]) -> Path:
-    """Write a PDF; each page is a list of (x, y, text) in PDF points, origin bottom-left."""
+    """Write a PDF; each page is a list of (x, y, text[, font_size]) in PDF points, origin bottom-left."""
     c = canvas.Canvas(str(path), pagesize=A4)
     for items in pages:
-        c.setFont("Helvetica", 10.5)
-        for x, y, text in items:
+        for x, y, text, *size in items:
+            c.setFont("Helvetica", size[0] if size else 10.5)
             c.drawString(x, y, text)
         c.showPage()
     c.save()

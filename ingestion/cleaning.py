@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import statistics
 
 from LexoraAI.schemas import ParsedPage
 
@@ -44,3 +45,29 @@ def strip_headers_footers(pages: list[ParsedPage]) -> int:
         p.lines = keep
         p.char_count = sum(len(l.text) for l in p.lines)
     return removed
+
+
+_NOTE_START = re.compile(r"^[\(\[]?\d{1,3}[\)\]]?\s")
+
+
+def mark_footnotes(page: ParsedPage) -> None:
+    """Flag footnote lines so they do not get glued into the clause above them.
+
+    A footnote block opens with a line that (a) is set in a smaller font than the page's
+    median, (b) sits in the lower half of the page and (c) starts with a note number such
+    as "1 " or "(2) ". That line and everything below it is marked ``is_footnote``.
+    """
+    sizes = [l.size for l in page.lines if l.size]
+    if len(sizes) < 6:
+        return
+    median = statistics.median(sizes)
+    start = None
+    for l in page.lines:
+        if (l.method == "digital" and l.size and l.size < 0.9 * median
+                and l.bbox[1] > 0.5 * page.height and _NOTE_START.match(l.text)):
+            start = l.bbox[1] if start is None else min(start, l.bbox[1])
+    if start is None:
+        return
+    for l in page.lines:
+        if l.method == "digital" and l.bbox[1] >= start - 1:
+            l.is_footnote = True

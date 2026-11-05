@@ -39,3 +39,28 @@ def test_a_lone_page_number_in_the_margin_is_removed_without_repetition(tmp_path
     doc = parse_pdf(make_pdf(tmp_path / "d.pdf", pages), "d")
     assert all("Page 3 of 4" != l.text for l in doc.page(3).lines)
     assert len(doc.page(3).lines) == 2
+
+
+def _page_with_footnotes():
+    body = [(60, 760 - 18 * i, f"Body line {i} of the clause that talks about processing of data.") for i in range(8)]
+    notes = [(60, 140, "1 Regulation (EU) 2016/679 of the European Parliament.", 7),
+             (60, 128, "2 Directive 95/46/EC of the European Parliament.", 7)]
+    return body + notes
+
+
+def test_footnotes_are_flagged_and_body_is_not(tmp_path):
+    doc = parse_pdf(make_pdf(tmp_path / "f.pdf", [_page_with_footnotes()]), "d")
+    lines = doc.page(1).lines
+    assert [l.is_footnote for l in lines] == [False] * 8 + [True] * 2
+    assert lines[8].text.startswith("1 Regulation")
+
+
+def test_small_text_without_a_note_number_is_not_a_footnote(tmp_path):
+    items = _page_with_footnotes()[:8] + [(60, 140, "Small print without any note number at all.", 7)]
+    doc = parse_pdf(make_pdf(tmp_path / "g.pdf", [items]), "d")
+    assert not any(l.is_footnote for l in doc.page(1).lines)
+
+
+def test_pages_without_footnotes_are_untouched(simple_pdf):
+    doc = parse_pdf(simple_pdf, "d")
+    assert not any(l.is_footnote for p in doc.pages for l in p.lines)
