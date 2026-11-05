@@ -4,14 +4,14 @@ A local-first, evidence-grounded analyst for legal PDFs: upload documents, ask q
 and get answers whose citations (document, page, clause, quote) are independently verified
 against the source - or an honest "INSUFFICIENT EVIDENCE".
 
-**Status: work in progress.** This repository was started on 2026-11-04. 
+**Status: work in progress.** This repository was started on 2026-11-04.
 
 ## What exists so far
 
 - [x] Project skeleton, pinned dependencies
-- [x] Settings
-- [ ] Data models
-- [ ] PDF validation and text extraction (PyMuPDF)
+- [x] Settings (defaults + `LEXORA_*` environment variables)
+- [x] Data models for parsed documents (page index + bounding box on every line)
+- [x] PDF validation and text extraction (PyMuPDF): page numbers, bounding boxes, row merging, image-only page flag
 - [ ] OCR for scanned pages (Tesseract), tables, legal structure detection, chunking
 - [ ] Retrieval: embeddings, ChromaDB, BM25, RRF, cross-encoder reranking
 - [ ] Local LLM answers (Ollama), citation validation, abstention
