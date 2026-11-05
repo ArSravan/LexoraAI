@@ -23,12 +23,34 @@ class TextLine(BaseModel):
     is_footnote: bool = False               # set by the footnote detector
 
 
+class TableData(BaseModel):
+    page_index: int
+    bbox: BBox
+    rows: list[list[str]]
+    caption: str = ""
+    header_rows: int = 1
+
+    def to_text(self) -> str:
+        """Pipe-separated rows. Each data row is followed by "(Header: value; ...)" so that a
+        search for a column name still finds the cell value, even for spanning headers."""
+        out = []
+        header = self.rows[0] if self.rows else []
+        for i, row in enumerate(self.rows):
+            out.append(" | ".join(row))
+            if i >= self.header_rows and header and len(header) == len(row):
+                pairs = [f"{h}: {c}" for h, c in zip(header, row) if h and c]
+                if pairs:
+                    out.append("  (" + "; ".join(pairs) + ")")
+        return "\n".join(out)
+
+
 class ParsedPage(BaseModel):
     page_index: int                         # 0-based
     page_number: int                        # 1-based, what a human reads
     width: float
     height: float
     lines: list[TextLine] = Field(default_factory=list)
+    tables: list[TableData] = Field(default_factory=list)
     char_count: int = 0
     needs_ocr: bool = False                 # no text layer but an image: the page is a scan
     method: Literal["digital", "ocr"] = "digital"   # "ocr" once OCR recovered the text

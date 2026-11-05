@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pymupdf
 
+from LexoraAI.ingestion.table_extractor import extract_tables
 from LexoraAI.ingestion.ocr import configure_tesseract, ocr_page
 from LexoraAI.ingestion.cleaning import mark_footnotes, strip_headers_footers
 from LexoraAI.schemas import ParsedDocument, ParsedPage, TextLine
@@ -153,6 +154,35 @@ def _order_lines(lines: list[TextLine], width: float) -> list[TextLine]:
     return out + _merge_rows(left) + _merge_rows(right)
 
 
+_TABLE_CAPTION = re.compile(r"(?i)^table\s+\d")
+
+
+def _attach_tables(pages: list[ParsedPage], path: Path, warnings: list[str]) -> None:
+    """Extract tables from digital pages; move their cell text out of the page's lines.
+
+    The caption is the nearest "Table N ..." line within 40 points above the table.
+    """
+    digital = [p.page_index for p in pages if p.method == "digital" and p.char_count]
+    try:
+        found = extract_tables(str(path), digital)
+    except Exception as e:  # noqa: BLE001 - table failure must not lose the text
+        warnings.append(f"Table extraction failed: {e}")
+        return
+    for pi, tables in found.items():
+        page = pages[pi]
+        for t in tables:
+            x0, y0, x1, y1 = t.bbox
+            page.lines = [l for l in page.lines
+                          if not (x0 - 2 <= (l.bbox[0] + l.bbox[2]) / 2 <= x1 + 2
+                                  and y0 - 2 <= (l.bbox[1] + l.bbox[3]) / 2 <= y1 + 2)]
+            above = [l for l in page.lines if l.bbox[3] <= y0 + 2 and y0 - l.bbox[3] < 40
+                     and _TABLE_CAPTION.match(l.text)]
+            if above:
+                t.caption = above[-1].text
+            page.tables.append(t)
+        page.char_count = sum(len(l.text) for l in page.lines)
+
+
 def _apply_ocr(page: ParsedPage, pg: "pymupdf.Page", dpi: int, lang: str) -> None:
     """Replace an empty scanned page's lines with OCR output, recording confidence."""
     try:
@@ -173,7 +203,7 @@ def _apply_ocr(page: ParsedPage, pg: "pymupdf.Page", dpi: int, lang: str) -> Non
 def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *,
               max_mb: float = 50, scanned_min_chars: int = 30, ocr_enabled: bool = True,
               ocr_lang: str = "eng", ocr_dpi: int = 200,
-              tesseract_cmd: str | None = None) -> ParsedDocument:
+              tesseract_cmd: str | None = None, tables_enabled: bool = True) -> ParsedDocument:
     """Validate and extract a PDF.
 
     A page with (almost) no text but an image is a scan: it is flagged ``needs_ocr`` and,
@@ -209,7 +239,11 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
         warnings.append(f"Removed {removed} repeated header/footer lines.")
     for p in pages:
         mark_footnotes(p)
-    if sum(p.char_count for p in pages) < scanned_min_chars:
+    if tables_enabled:
+        _attach_tables(pages, path, warnings)
+    total_chars = sum(p.char_count for p in pages) + sum(
+        len(c) for p in pages for t in p.tables for r in t.rows for c in r)
+    if total_chars < scanned_min_chars:
         raise PDFValidationError("No text could be extracted from this PDF (image-only PDF and OCR "
                                  "unavailable or empty). The document was not indexed.")
     n_missing = sum(p.needs_ocr and p.method != "ocr" for p in pages)

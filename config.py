@@ -30,6 +30,7 @@ class Settings:
     ocr_lang: str = "eng"
     ocr_dpi: int = 200
     tesseract_cmd: str = ""       # empty = Windows default path, then PATH
+    tables_enabled: bool = True
 
 
 def _cast(raw: str, typ: type):

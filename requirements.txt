@@ -5,6 +5,7 @@ pydantic==2.14.2
 python-dotenv==1.2.4
 pillow==13.0.0
 pytesseract==0.3.13
+pdfplumber==0.11.10
 
 # tests / fixtures
 pytest==9.2.0
