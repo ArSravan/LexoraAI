@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pymupdf
 
+from LexoraAI.ingestion.cleaning import strip_headers_footers
 from LexoraAI.schemas import ParsedDocument, ParsedPage, TextLine
 
 
@@ -174,6 +175,9 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
                     page.warning = "Blank page (no text and no images)."
             pages.append(page)
         metadata = {k: str(v) for k, v in (doc.metadata or {}).items() if v}
+    removed = strip_headers_footers(pages)
+    if removed:
+        warnings.append(f"Removed {removed} repeated header/footer lines.")
     if not any(p.char_count or p.needs_ocr for p in pages):
         raise PDFValidationError("No text could be extracted from this PDF.")
     n_ocr = sum(p.needs_ocr for p in pages)

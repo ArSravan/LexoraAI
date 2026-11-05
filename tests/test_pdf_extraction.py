@@ -77,7 +77,7 @@ def test_invalid_input_is_rejected_by_validation(tmp_path):
 
 
 def test_parsed_document_survives_json_round_trip(simple_pdf):
-    from lexora.schemas import ParsedDocument
+    from LexoraAI.schemas import ParsedDocument
     doc = parse_pdf(simple_pdf, "d1")
     assert ParsedDocument.model_validate_json(doc.model_dump_json()) == doc
 
