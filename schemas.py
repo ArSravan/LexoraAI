@@ -72,3 +72,31 @@ class ParsedDocument(BaseModel):
         if not 1 <= page_number <= len(self.pages):
             raise IndexError(f"page {page_number} not in 1..{len(self.pages)}")
         return self.pages[page_number - 1]
+
+
+class Region(BaseModel):
+    """A rectangle on one 0-based PDF page, in PDF points (used to highlight a quote later)."""
+    page_index: int
+    bbox: list[float]                       # x0, y0, x1, y1
+
+
+class Chunk(BaseModel):
+    """The unit that is embedded, searched, retrieved and cited."""
+    chunk_id: str
+    document_id: str
+    document_name: str
+    page_number: int                        # 1-based page where the chunk starts
+    page_index: int                         # the same page, 0-based (never lost)
+    page_end: int = 0                       # last page the chunk spans (1-based)
+    section: str = ""                       # heading context, e.g. "Article 83 - General conditions ..."
+    article: str = ""                       # "83" / "Annex I" / contract section number
+    clause: str = ""                        # "83(5)", "7.2", "Recital 4", "Table 9.1"
+    text: str                               # what the LLM sees and what quotes are checked against
+    chunk_type: str = "clause"              # clause|subpoint|child|recital|table|text|footnote
+    bbox: list[float] | None = None         # bbox of the first region
+    regions: list[Region] = Field(default_factory=list)
+    extraction_method: str = "digital"      # digital|ocr
+    ocr_confidence: float | None = None
+    parent_clause: str = ""
+    lead_in: str = ""                       # opening sentence of the parent clause (for sub-point chunks)
+    index_text: str = ""                    # contextualised text used for embeddings / BM25
