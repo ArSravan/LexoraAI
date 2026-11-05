@@ -26,6 +26,10 @@ class Settings:
     max_upload_mb: int = 50
     scanned_min_chars: int = 30   # a page with fewer extracted characters counts as "no text"
     seed: int = 42
+    ocr_enabled: bool = True
+    ocr_lang: str = "eng"
+    ocr_dpi: int = 200
+    tesseract_cmd: str = ""       # empty = Windows default path, then PATH
 
 
 def _cast(raw: str, typ: type):

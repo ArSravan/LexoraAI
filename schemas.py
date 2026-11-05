@@ -30,7 +30,9 @@ class ParsedPage(BaseModel):
     height: float
     lines: list[TextLine] = Field(default_factory=list)
     char_count: int = 0
-    needs_ocr: bool = False                 # (almost) no text but the page holds an image
+    needs_ocr: bool = False                 # no text layer but an image: the page is a scan
+    method: Literal["digital", "ocr"] = "digital"   # "ocr" once OCR recovered the text
+    ocr_confidence: float | None = None     # mean line confidence, 0-100
     warning: str = ""
 
 

@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pymupdf
 
+from LexoraAI.ingestion.ocr import configure_tesseract, ocr_page
 from LexoraAI.ingestion.cleaning import mark_footnotes, strip_headers_footers
 from LexoraAI.schemas import ParsedDocument, ParsedPage, TextLine
 
@@ -152,14 +153,40 @@ def _order_lines(lines: list[TextLine], width: float) -> list[TextLine]:
     return out + _merge_rows(left) + _merge_rows(right)
 
 
+def _apply_ocr(page: ParsedPage, pg: "pymupdf.Page", dpi: int, lang: str) -> None:
+    """Replace an empty scanned page's lines with OCR output, recording confidence."""
+    try:
+        lines = ocr_page(pg, page.page_index, dpi, lang)
+    except Exception as e:  # noqa: BLE001 - a failed OCR must not abort the whole document
+        page.warning = f"Scanned page; OCR failed: {e}"
+        return
+    if not lines:
+        page.warning = "Scanned page; OCR found no text."
+        return
+    page.lines = lines
+    page.char_count = sum(len(l.text) for l in lines)
+    page.method = "ocr"
+    page.ocr_confidence = round(sum(l.confidence for l in lines) / len(lines), 1)
+    page.warning = f"Scanned page; recovered with OCR (mean confidence {page.ocr_confidence}%)."
+
+
 def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *,
-              max_mb: float = 50, scanned_min_chars: int = 30) -> ParsedDocument:
-    """Validate and extract a PDF. Pages with (almost) no text but an image are flagged
-    ``needs_ocr``; the OCR step itself is a separate stage."""
+              max_mb: float = 50, scanned_min_chars: int = 30, ocr_enabled: bool = True,
+              ocr_lang: str = "eng", ocr_dpi: int = 200,
+              tesseract_cmd: str | None = None) -> ParsedDocument:
+    """Validate and extract a PDF.
+
+    A page with (almost) no text but an image is a scan: it is flagged ``needs_ocr`` and,
+    when Tesseract is available, recovered with OCR (``method`` becomes "ocr"). Empty
+    extraction is never silently accepted.
+    """
     path = Path(path)
     page_count = validate_pdf(path, max_mb)
+    ocr_ok = ocr_enabled and configure_tesseract(tesseract_cmd)
     pages: list[ParsedPage] = []
     warnings: list[str] = []
+    if ocr_enabled and not ocr_ok:
+        warnings.append("Tesseract not found: scanned pages cannot be OCR'd (install Tesseract).")
     with pymupdf.open(path) as doc:
         for i in range(page_count):
             pg = doc[i]
@@ -171,6 +198,8 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
                 if pg.get_images(full=True):
                     page.needs_ocr = True
                     page.warning = "Image-only page: no text layer, OCR needed."
+                    if ocr_ok:
+                        _apply_ocr(page, pg, ocr_dpi, ocr_lang)
                 elif chars == 0:
                     page.warning = "Blank page (no text and no images)."
             pages.append(page)
@@ -180,11 +209,12 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
         warnings.append(f"Removed {removed} repeated header/footer lines.")
     for p in pages:
         mark_footnotes(p)
-    if not any(p.char_count or p.needs_ocr for p in pages):
-        raise PDFValidationError("No text could be extracted from this PDF.")
-    n_ocr = sum(p.needs_ocr for p in pages)
-    if n_ocr:
-        warnings.append(f"{n_ocr} page(s) have no text layer and need OCR.")
+    if sum(p.char_count for p in pages) < scanned_min_chars:
+        raise PDFValidationError("No text could be extracted from this PDF (image-only PDF and OCR "
+                                 "unavailable or empty). The document was not indexed.")
+    n_missing = sum(p.needs_ocr and p.method != "ocr" for p in pages)
+    if n_missing:
+        warnings.append(f"{n_missing} page(s) have no text layer and need OCR.")
     return ParsedDocument(document_id=document_id, filename=filename or path.name,
                           sha256=sha256_file(path), page_count=page_count, metadata=metadata,
                           pages=pages, warnings=warnings)

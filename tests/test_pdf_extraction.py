@@ -28,8 +28,9 @@ def test_every_line_keeps_page_index_and_a_bbox_inside_the_page(simple_pdf):
 
 def test_reading_order_is_top_to_bottom(tmp_path):
     # drawn bottom-first on purpose; extraction must still return top-to-bottom
-    pdf = make_pdf(tmp_path / "order.pdf", [[(60, 100, "third"), (60, 400, "second"), (60, 700, "first")]])
-    assert [l.text for l in parse_pdf(pdf, "d").page(1).lines] == ["first", "second", "third"]
+    pdf = make_pdf(tmp_path / "order.pdf", [[(60, 100, "third line of the page"), (60, 400, "second line of the page"),
+                                             (60, 700, "first line of the page")]])
+    assert [l.text.split()[0] for l in parse_pdf(pdf, "d").page(1).lines] == ["first", "second", "third"]
 
 
 def test_list_marker_and_its_text_become_one_line(tmp_path):
@@ -60,7 +61,7 @@ def test_image_only_page_is_flagged_for_ocr(tmp_path):
     doc = parse_pdf(pdf, "d")
     assert not doc.pages[0].needs_ocr
     assert doc.pages[1].needs_ocr and doc.pages[1].char_count == 0
-    assert "need OCR" in doc.warnings[0]
+    assert any("need OCR" in w for w in doc.warnings)
 
 
 def test_pdf_without_any_text_or_image_is_rejected(tmp_path):
