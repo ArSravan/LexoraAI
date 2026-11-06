@@ -59,3 +59,9 @@ python -m scripts.inspect_pdf path/to/file.pdf --clause "83(5)"
 python -m scripts.search_pdf a.pdf b.pdf -q "What is the maximum fine?" --compare
 ```
 `--compare` shows BM25 only, dense only, hybrid, hybrid + rerank and hybrid + rerank + decomposition side by side.
+
+To measure the retrieval configurations on a labelled question set (answerable questions only):
+
+```bash
+python -m scripts.eval_retrieval a.pdf b.pdf --dataset path/to/dataset.json --misses
+```
