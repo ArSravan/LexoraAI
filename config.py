@@ -39,6 +39,9 @@ class Settings:
     ollama_num_predict: int = 1024      # maximum new tokens
     ollama_think: str = "off"           # off | on | auto (auto = leave to the model's default)
     quote_match_min: float = 0.85       # share of a quoted text that must occur in the cited passage
+    # evidence-sufficiency gate: abstain unless BOTH are met (values calibrated on a separate dev set earlier)
+    abstain_rerank_min: float = 2.5     # best cross-encoder logit required to answer
+    abstain_coverage_min: float = 0.32  # share of the question's salient terms found in the top passages
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
