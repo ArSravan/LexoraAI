@@ -33,6 +33,8 @@ class Settings:
     tables_enabled: bool = True
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
+    chunk_max_chars: int = 1000
+    chunk_overlap: int = 150
     retrieval_mode: str = "hybrid"      # bm25 | dense | hybrid
     initial_top_k: int = 20             # candidates fetched per retriever / kept after fusion
     final_top_k: int = 5                # passages finally handed to the LLM
