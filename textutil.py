@@ -54,6 +54,11 @@ _NUM = re.compile(r"(?<![\w.])(\d{1,3}(?:[ ,\u00a0\u202f]\d{3})+(?:\.\d+)?|\d+(?
                   r"\s*(thousand|million|billion|mn|bn|m|k|b)?\b", re.I)
 
 
+def remove_refs(text: str) -> str:
+    """Blank out clause/page references ('Article 83(5)', 'Section 7.2', 'page 14', 'Table 9.1')."""
+    return _REF.sub(" ", text)
+
+
 def numbers(text: str, strip_refs: bool = True) -> set[float]:
     """Every quantity in ``text`` as a float, with unit multipliers applied.
 
@@ -63,7 +68,7 @@ def numbers(text: str, strip_refs: bool = True) -> set[float]:
     """
     text = normalize(text)
     if strip_refs:
-        text = _REF.sub(" ", text)
+        text = remove_refs(text)
     out: set[float] = set()
     for m in _NUM.finditer(text):
         raw, mult = m.group(1), m.group(2)

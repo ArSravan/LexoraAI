@@ -36,7 +36,7 @@ def test_clause_key_ignores_the_word_before_the_number():
     assert clause_key("Recital 4") == "recital4"
 
 
-from LexoraAI.textutil import numbers  # noqa: E402
+from textutil import numbers  # noqa: E402
 
 
 @pytest.mark.parametrize("text", ["20 000 000 EUR", "EUR 20 million", "20,000,000", "€20m", "20 mn euros"])
@@ -57,3 +57,9 @@ def test_clause_and_page_references_are_not_quantities():
 
 def test_dates_and_plain_text():
     assert numbers("entered into force on 25 May 2018") == {25.0, 2018.0} and numbers("no figures here") == set()
+
+
+def test_remove_refs_blanks_only_the_references():
+    from LexoraAI.textutil import remove_refs
+    out = remove_refs("Under Article 83(5) and Section 7.2 on page 14 the fine is 20 000 000 EUR")
+    assert "83" not in out and "7.2" not in out and "14" not in out and "20 000 000 EUR" in out

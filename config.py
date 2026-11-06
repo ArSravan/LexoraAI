@@ -38,6 +38,7 @@ class Settings:
     ollama_num_ctx: int = 8192          # context window: prompt + answer must fit
     ollama_num_predict: int = 1024      # maximum new tokens
     ollama_think: str = "off"           # off | on | auto (auto = leave to the model's default)
+    quote_match_min: float = 0.85       # share of a quoted text that must occur in the cited passage
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
