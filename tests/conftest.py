@@ -151,3 +151,28 @@ def index_chunks(case_id: str, chunks: list[Chunk]) -> None:
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(json.dumps([c.model_dump() for c in chunks]), encoding="utf-8")
     hybrid.invalidate(case_id)
+
+
+class FakeCrossEncoder:
+    """Stands in for CrossEncoder: the score is the number of (stemmed) query words found in the passage,
+    shifted so that a passage sharing nothing gets a NEGATIVE logit, like the real model."""
+
+    def __init__(self):
+        self.calls: list[list[tuple[str, str]]] = []
+
+    def predict(self, pairs, batch_size=16, show_progress_bar=False):
+        from textutil import stem, words
+        self.calls.append(list(pairs))
+        out = []
+        for q, p in pairs:
+            qs, ps = {stem(w) for w in words(q)}, {stem(w) for w in words(p)}
+            out.append(float(len(qs & ps)) - 1.5)
+        return np.array(out, dtype=np.float32)
+
+
+@pytest.fixture
+def fake_reranker(monkeypatch) -> FakeCrossEncoder:
+    from retrieval import reranker
+    model = FakeCrossEncoder()
+    monkeypatch.setattr(reranker, "get_reranker", lambda name=None: model)
+    return model

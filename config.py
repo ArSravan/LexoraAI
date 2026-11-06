@@ -33,6 +33,8 @@ class Settings:
     tables_enabled: bool = True
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    rerank_enabled: bool = True
     chunk_max_chars: int = 1000
     chunk_overlap: int = 150
     retrieval_mode: str = "hybrid"      # bm25 | dense | hybrid

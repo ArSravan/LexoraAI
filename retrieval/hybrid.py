@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 
 from config import get_settings
 from retrieval import vector_store
 from retrieval.bm25 import BM25Index
 from retrieval.embeddings import embed_query
+from retrieval.reranker import rerank as cross_rerank
 from schemas import Chunk, RetrievedChunk
 from services.paths import chunks_file
 
@@ -104,3 +106,24 @@ def search(case_id: str, query: str, mode: str | None = None, top_k: int | None 
             rrf_score=fused.get(cid) if mode == "hybrid" else None,
             bm25_rank=bm_rank.get(cid), dense_rank=de_rank.get(cid), final_rank=len(out) + 1))
     return out
+
+
+def retrieve(case_id: str, query: str, mode: str | None = None, initial_k: int | None = None,
+             final_k: int | None = None, rerank: bool | None = None, rrf_k: int | None = None,
+             document_ids: list[str] | None = None) -> tuple[list[RetrievedChunk], dict]:
+    """The full retrieval stage: search (``initial_k`` candidates), then optionally rerank with the
+    cross-encoder and keep ``final_k``. Returns (hits, timings in seconds)."""
+    s = get_settings()
+    final_k = final_k or s.final_top_k
+    rerank = s.rerank_enabled if rerank is None else rerank
+    t0 = time.perf_counter()
+    hits = search(case_id, query, mode, initial_k, rrf_k, document_ids=document_ids)
+    t1 = time.perf_counter()
+    if rerank and hits:
+        hits = cross_rerank(query, hits, final_k)
+    else:
+        hits = hits[:final_k]
+        for i, h in enumerate(hits, 1):
+            h.final_rank = i
+    t2 = time.perf_counter()
+    return hits, {"search_s": round(t1 - t0, 3), "rerank_s": round(t2 - t1, 3)}
