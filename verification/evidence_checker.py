@@ -36,6 +36,7 @@ class Sufficiency:
     missing_terms: list[str]
     n_relevant: int
     reasons: list[str] = field(default_factory=list)
+    rerank_scored: bool = False     # True: top_score is a cross-encoder logit; False: a cosine similarity or None
 
 
 def _salient(question: str) -> dict[str, str]:
@@ -87,4 +88,4 @@ def assess(question: str, hits: list[RetrievedChunk], s: Settings) -> Sufficienc
     if cov < s.abstain_coverage_min:
         reasons.append(f"Only {cov:.0%} of the question's key terms occur in the retrieved passages "
                        f"(missing: {', '.join(missing) or 'n/a'}).")
-    return Sufficiency(not reasons, top, cov, missing, n_relevant, reasons)
+    return Sufficiency(not reasons, top, cov, missing, n_relevant, reasons, rerank_scored=bool(scores))

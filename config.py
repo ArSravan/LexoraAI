@@ -42,6 +42,9 @@ class Settings:
     # evidence-sufficiency gate: abstain unless BOTH are met (values calibrated on a separate dev set earlier)
     abstain_rerank_min: float = 2.5     # best cross-encoder logit required to answer
     abstain_coverage_min: float = 0.32  # share of the question's salient terms found in the top passages
+    high_conf_rerank: float = 6.0       # best cross-encoder score needed for HIGH confidence
+    medium_conf_rerank: float = 2.5     # ... and for MEDIUM
+    verify_retries: int = 1             # how often the model may rewrite a draft the verifier rejected
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"

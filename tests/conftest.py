@@ -176,3 +176,67 @@ def fake_reranker(monkeypatch) -> FakeCrossEncoder:
     model = FakeCrossEncoder()
     monkeypatch.setattr(reranker, "get_reranker", lambda name=None: model)
     return model
+
+
+# ----------------------------------------------------------------------------- a scripted LLM
+class FakeOllama:
+    """Stands in for OllamaClient. ``script`` is a fixed reply (a string) or a function ``script(messages)``
+    returning the raw model output, or an exception instance to raise. ``calls`` records every request."""
+
+    def __init__(self, script, model="fake-model"):
+        self.script = script if callable(script) else (lambda messages, text=script: text)
+        self.model = model
+        self.calls: list[list[dict]] = []
+        self.formats: list = []
+
+    def chat(self, messages, fmt=None, options=None, think=None, on_token=None):
+        from generation.ollama_client import ChatResult
+        self.calls.append(messages)
+        self.formats.append(fmt)
+        out = self.script(messages)
+        if isinstance(out, Exception):
+            raise out
+        if on_token:
+            on_token(out)
+        return ChatResult(content=out, model=self.model, prompt_tokens=100, completion_tokens=50)
+
+
+def sequence(*outputs):
+    """A script that returns the outputs one after the other (the last one repeats)."""
+    state = {"i": 0}
+
+    def script(messages):
+        out = outputs[min(state["i"], len(outputs) - 1)]
+        state["i"] += 1
+        return out(messages) if callable(out) else out
+    return script
+
+
+def passage_blocks(prompt: str) -> list[dict]:
+    """Parse the '[E1] document: X | page: 2 | section: S | clause: 7.2 <<< text >>>' blocks of a prompt."""
+    import re
+    return [{"id": m.group(1), "document": m.group(2), "page": int(m.group(3)), "clause": m.group(5), "text": m.group(6)}
+            for m in re.finditer(r"\[(E\d+)\] document: (.*?) \| page: (\d+) \| section: (.*?) \| clause: (.*?)\n"
+                                 r"(?:\(context[^\n]*\n)?<<<\n(.*?)\n>>>", prompt, re.S)]
+
+
+def _first_passage(messages) -> dict:
+    return passage_blocks(next(m["content"] for m in messages if "EVIDENCE PASSAGES" in m["content"]))[0]
+
+
+def grounded_answer(messages) -> str:
+    """A well-behaved 'LLM': answers from the first passage with a verbatim quote."""
+    p = _first_passage(messages)
+    quote = p["text"][:100]
+    return json.dumps({"answer": f"The passage states: {quote}", "claims": [{"claim": quote, "evidence": [
+        {"passage_id": p["id"], "document": p["document"], "page": p["page"], "clause": p["clause"],
+         "supporting_text": quote}]}], "reasoning_summary": "Directly stated.", "confidence": "HIGH",
+        "abstained": False, "conflicts": []})
+
+
+def fabricated_answer(messages) -> str:
+    """A dishonest 'LLM': cites a document and a quote that do not exist."""
+    return json.dumps({"answer": "The cap is EUR 999 million.", "claims": [{"claim": "The cap is EUR 999 million.",
+        "evidence": [{"passage_id": "E1", "document": "Imaginary.pdf", "page": 1, "clause": "1.1",
+                      "supporting_text": "the cap is nine hundred ninety nine million euros"}]}],
+        "reasoning_summary": "", "confidence": "HIGH", "abstained": False, "conflicts": []})
