@@ -9,6 +9,7 @@ pytesseract==0.3.13
 pdfplumber==0.11.10
 numpy==2.5.4
 rank-bm25==0.2.2
+chromadb==1.5.9
 torch==2.15.0
 transformers==5.22.1
 sentence-transformers==6.2.0
