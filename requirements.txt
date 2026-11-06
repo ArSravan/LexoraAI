@@ -3,6 +3,7 @@
 # then: pip install -r requirements.txt
 pymupdf==2.1
 pydantic==2.14.2
+requests==2.34.2
 python-dotenv==1.2.4
 pillow==13.0.0
 pytesseract==0.3.13

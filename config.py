@@ -31,6 +31,13 @@ class Settings:
     ocr_dpi: int = 200
     tesseract_cmd: str = ""       # empty = Windows default path, then PATH
     tables_enabled: bool = True
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen3.5:9b"
+    ollama_timeout: float = 600.0       # seconds to wait for the model (a 9B model on CPU is slow)
+    ollama_temperature: float = 0.1
+    ollama_num_ctx: int = 8192          # context window: prompt + answer must fit
+    ollama_num_predict: int = 1024      # maximum new tokens
+    ollama_think: str = "off"           # off | on | auto (auto = leave to the model's default)
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
