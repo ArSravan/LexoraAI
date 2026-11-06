@@ -69,8 +69,14 @@ def test_without_reranking_dense_similarity_is_used():
     assert ok.sufficient and ok.top_score == 0.62 and ok.n_relevant == 1
     low = assess("administrative fines", [hit("administrative fines", dense=0.1)], S)
     assert not low.sufficient and "semantic similarity" in low.reasons[0]
-    none = assess("administrative fines", [hit("administrative fines")], S)               # BM25-only hit: no dense score
-    assert not none.sufficient and none.top_score is None
+
+
+def test_bm25_only_retrieval_has_no_relevance_score_so_only_coverage_decides():
+    bm25_only = hit("administrative fines for infringements")                               # no rerank, no dense score
+    ok = assess("administrative fines", [bm25_only], S)
+    assert ok.sufficient and ok.top_score is None and not ok.rerank_scored and ok.coverage == 1.0
+    off_topic = assess("blockchain mining", [bm25_only], S)
+    assert not off_topic.sufficient and "blockchain" in off_topic.reasons[0] and len(off_topic.reasons) == 1
 
 
 def test_the_abstention_explains_what_was_searched_and_what_was_found():

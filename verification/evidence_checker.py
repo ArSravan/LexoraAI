@@ -83,7 +83,9 @@ def assess(question: str, hits: list[RetrievedChunk], s: Settings) -> Sufficienc
         dense = [h.dense_score for h in hits if h.dense_score is not None]
         top = max(dense) if dense else None
         n_relevant = sum(1 for x in dense if x >= DENSE_MIN)
-        if top is None or top < DENSE_MIN:
+        # BM25-only retrieval has no relevance score at all: that is missing information, not low relevance,
+        # so only the term-coverage test below decides in that case.
+        if dense and top < DENSE_MIN:
             reasons.append("Retrieved passages have low semantic similarity to the question.")
     if cov < s.abstain_coverage_min:
         reasons.append(f"Only {cov:.0%} of the question's key terms occur in the retrieved passages "
