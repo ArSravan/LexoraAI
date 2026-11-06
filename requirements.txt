@@ -1,4 +1,6 @@
 # More dependencies are added in the commit that first needs them.
+# CPU-only PyTorch (small): pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+# then: pip install -r requirements.txt
 pymupdf==2.1
 pydantic==2.14.2
 python-dotenv==1.2.4
@@ -7,6 +9,9 @@ pytesseract==0.3.13
 pdfplumber==0.11.10
 numpy==2.5.4
 rank-bm25==0.2.2
+torch==2.15.0
+transformers==5.22.1
+sentence-transformers==6.2.0
 
 # tests / fixtures
 pytest==9.2.0

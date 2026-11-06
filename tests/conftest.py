@@ -1,6 +1,8 @@
 """Shared fixtures: small PDFs are generated on the fly, so no binary test data is committed."""
+import zlib
 from pathlib import Path
 
+import numpy as np
 import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -107,3 +109,32 @@ def contract_pdf(tmp_path) -> Path:
     path = tmp_path / "Vendor_Agreement.pdf"
     SimpleDocTemplate(str(path)).build(story)
     return path
+
+
+class FakeEmbeddingModel:
+    """Stands in for SentenceTransformer: a hashed bag of (stemmed) words, L2-normalised.
+    Two texts that share words get a high cosine similarity - enough to test the plumbing
+    deterministically and without downloading a model."""
+    DIM = 64
+
+    def __init__(self):
+        self.encoded: list[str] = []          # every text that really went through the "model"
+
+    def encode(self, texts, batch_size=32, normalize_embeddings=True, show_progress_bar=False,
+               convert_to_numpy=True):
+        from LexoraAI.textutil import stem, words
+        self.encoded += list(texts)
+        out = np.zeros((len(texts), self.DIM), dtype=np.float32)
+        for r, t in enumerate(texts):
+            for w in words(t):
+                out[r, zlib.crc32(stem(w).encode()) % self.DIM] += 1.0
+        norms = np.linalg.norm(out, axis=1, keepdims=True)
+        return out / np.where(norms == 0, 1.0, norms)
+
+
+@pytest.fixture
+def fake_embedder(monkeypatch) -> FakeEmbeddingModel:
+    from retrieval import embeddings
+    model = FakeEmbeddingModel()
+    monkeypatch.setattr(embeddings, "get_model", lambda name=None: model)
+    return model

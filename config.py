@@ -31,6 +31,8 @@ class Settings:
     ocr_dpi: int = 200
     tesseract_cmd: str = ""       # empty = Windows default path, then PATH
     tables_enabled: bool = True
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_batch_size: int = 32
 
 
 def _cast(raw: str, typ: type):
