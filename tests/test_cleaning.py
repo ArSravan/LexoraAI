@@ -1,4 +1,4 @@
-from LexoraAI.ingestion.pdf_parser import parse_pdf
+from ingestion.pdf_parser import parse_pdf
 from tests.conftest import make_pdf
 
 

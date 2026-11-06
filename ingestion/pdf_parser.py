@@ -12,10 +12,10 @@ from pathlib import Path
 
 import pymupdf
 
-from LexoraAI.ingestion.table_extractor import extract_tables
-from LexoraAI.ingestion.ocr import configure_tesseract, ocr_page
-from LexoraAI.ingestion.cleaning import mark_footnotes, strip_headers_footers
-from LexoraAI.schemas import ParsedDocument, ParsedPage, TextLine
+from ingestion.table_extractor import extract_tables
+from ingestion.ocr import configure_tesseract, ocr_page
+from ingestion.cleaning import mark_footnotes, strip_headers_footers
+from schemas import ParsedDocument, ParsedPage, TextLine
 
 
 class PDFValidationError(ValueError):

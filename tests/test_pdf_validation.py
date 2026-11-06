@@ -3,7 +3,7 @@ import hashlib
 import pymupdf
 import pytest
 
-from LexoraAI.ingestion.pdf_parser import PDFValidationError, safe_filename, sha256_file, validate_pdf
+from ingestion.pdf_parser import PDFValidationError, safe_filename, sha256_file, validate_pdf
 from tests.conftest import make_pdf
 
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from LexoraAI.schemas import ParsedDocument, TableData, TextLine
+from schemas import ParsedDocument, TableData, TextLine
 
 ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii", "xiii", "xiv", "xv"]
 

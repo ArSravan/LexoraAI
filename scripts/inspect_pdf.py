@@ -11,9 +11,9 @@ import collections
 import sys
 from pathlib import Path
 
-from LexoraAI.config import get_settings
-from LexoraAI.ingestion.chunker import chunk_document
-from LexoraAI.ingestion.pdf_parser import parse_pdf
+from config import get_settings
+from ingestion.chunker import chunk_document
+from ingestion.pdf_parser import parse_pdf
 
 
 def report(path: Path, n_chunks: int = 10, clause: str | None = None) -> str:

@@ -1,5 +1,5 @@
-from LexoraAI.ingestion.pdf_parser import parse_pdf
-from LexoraAI.ingestion.structure_detector import StructureDetector
+from ingestion.pdf_parser import parse_pdf
+from ingestion.structure_detector import StructureDetector
 from tests.conftest import make_pdf
 
 

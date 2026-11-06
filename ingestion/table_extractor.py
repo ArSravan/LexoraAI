@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pymupdf
 
-from LexoraAI.schemas import TableData
+from schemas import TableData
 
 
 def _clean(cell) -> str:

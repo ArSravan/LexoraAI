@@ -12,8 +12,8 @@ import re
 import statistics
 from dataclasses import dataclass, field
 
-from LexoraAI.ingestion.structure_detector import Segment, StructureDetector
-from LexoraAI.schemas import Chunk, ParsedDocument, Region, TextLine
+from ingestion.structure_detector import Segment, StructureDetector
+from schemas import Chunk, ParsedDocument, Region, TextLine
 
 STRUCT_KINDS = {"article_intro", "paragraph", "subpoint", "recital"}
 MIN_STRUCT_SEGMENTS = 3          # fewer structural markers than this -> treat the document as unstructured

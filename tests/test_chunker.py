@@ -1,8 +1,8 @@
 import re
 
-from LexoraAI.ingestion.chunker import chunk_document
-from LexoraAI.ingestion.pdf_parser import parse_pdf
-from LexoraAI.schemas import Chunk
+from ingestion.chunker import chunk_document
+from ingestion.pdf_parser import parse_pdf
+from schemas import Chunk
 from tests.conftest import make_pdf
 
 

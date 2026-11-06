@@ -3,8 +3,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from LexoraAI.ingestion.pdf_parser import parse_pdf
-from LexoraAI.schemas import TableData
+from ingestion.pdf_parser import parse_pdf
+from schemas import TableData
 
 ROWS = [["Item", "Amount (EUR)"], ["Data breach", "5,000,000"],
         ["IP infringement", "3,000,000"], ["Total", "8,000,000"]]

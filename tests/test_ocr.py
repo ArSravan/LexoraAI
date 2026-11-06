@@ -1,9 +1,9 @@
 import pymupdf
 import pytest
 
-from LexoraAI.ingestion import pdf_parser
-from LexoraAI.ingestion.ocr import configure_tesseract
-from LexoraAI.ingestion.pdf_parser import PDFValidationError, parse_pdf
+from ingestion import pdf_parser
+from ingestion.ocr import configure_tesseract
+from ingestion.pdf_parser import PDFValidationError, parse_pdf
 from tests.conftest import make_pdf
 
 TEXT = ["Governing law of this agreement is the law of Delaware.",

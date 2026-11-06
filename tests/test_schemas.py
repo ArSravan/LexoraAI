@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from LexoraAI.schemas import ParsedDocument, ParsedPage, TextLine
+from schemas import ParsedDocument, ParsedPage, TextLine
 
 
 def _doc() -> ParsedDocument:

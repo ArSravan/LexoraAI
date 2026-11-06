@@ -100,3 +100,16 @@ class Chunk(BaseModel):
     parent_clause: str = ""
     lead_in: str = ""                       # opening sentence of the parent clause (for sub-point chunks)
     index_text: str = ""                    # contextualised text used for embeddings / BM25
+
+
+class RetrievedChunk(BaseModel):
+    """A chunk plus everything each retrieval stage knew about it (kept for the trace and the UI)."""
+    chunk: Chunk
+    bm25_score: float | None = None
+    dense_score: float | None = None        # cosine similarity
+    rrf_score: float | None = None          # Reciprocal Rank Fusion score (hybrid only)
+    bm25_rank: int | None = None            # 1-based rank in the BM25 list
+    dense_rank: int | None = None           # 1-based rank in the dense list
+    rerank_score: float | None = None       # cross-encoder logit
+    rerank_prob: float | None = None        # sigmoid(logit)
+    final_rank: int = 0

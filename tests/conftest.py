@@ -5,6 +5,27 @@ import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+from config import get_settings
+from schemas import Chunk
+
+
+@pytest.fixture(autouse=True)
+def isolated_storage(tmp_path, monkeypatch):
+    """Every test gets its own empty storage folder (databases, caches, indexes)."""
+    monkeypatch.setenv("LEXORA_STORAGE_DIR", str(tmp_path / "storage"))
+    get_settings.cache_clear()
+    yield tmp_path / "storage"
+    get_settings.cache_clear()
+
+
+def make_chunk(chunk_id: str, text: str, clause: str = "", doc: str = "d1", name: str = "Doc.pdf",
+               page: int = 1, section: str = "") -> Chunk:
+    """A Chunk with the same index_text layout the real chunker produces."""
+    head = " | ".join(x for x in (name, section, clause and f"clause {clause}") if x)
+    return Chunk(chunk_id=chunk_id, document_id=doc, document_name=name, page_number=page,
+                 page_index=page - 1, page_end=page, section=section, clause=clause, text=text,
+                 index_text=f"{head}\n{text}")
+
 
 def make_pdf(path: Path, pages: list[list[tuple[float, float, str]]]) -> Path:
     """Write a PDF; each page is a list of (x, y, text[, font_size]) in PDF points, origin bottom-left."""

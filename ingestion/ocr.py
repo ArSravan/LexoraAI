@@ -7,7 +7,7 @@ import os
 import pymupdf
 from PIL import Image
 
-from LexoraAI.schemas import TextLine
+from schemas import TextLine
 
 WINDOWS_DEFAULT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 

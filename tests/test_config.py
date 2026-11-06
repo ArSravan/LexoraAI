@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from LexoraAI.config import ROOT, Settings, get_settings, load_settings
+from config import ROOT, Settings, get_settings, load_settings
 
 
 def test_defaults():
