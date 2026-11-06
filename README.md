@@ -18,7 +18,9 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 - [x] Legal structure detection and clause-aware chunking
 - [x] Retrieval: cached local embeddings (MiniLM), ChromaDB, BM25 with a clause-number-aware tokenizer,
       Reciprocal Rank Fusion, cross-encoder reranking, query decomposition
-- [ ] Local LLM answers (Ollama), citation validation, abstention
+- [x] Local LLM answers (Ollama) as structured JSON, independent citation validation (six checks),
+      evidence-sufficiency gate with abstention, verifier retry loop, computed confidence,
+      numeric comparison and cross-document conflict detection
 - [ ] API, UI, one-command run, Docker
 - [ ] Evaluation and tests
 
@@ -65,3 +67,28 @@ To measure the retrieval configurations on a labelled question set (answerable q
 ```bash
 python -m scripts.eval_retrieval a.pdf b.pdf --dataset path/to/dataset.json --misses
 ```
+
+## Ask a question (needs Ollama)
+
+Install [Ollama](https://ollama.com/download) and pull the model once:
+
+```bash
+ollama pull qwen3.5:9b          # any other model works: set LEXORA_OLLAMA_MODEL or use --model
+ollama list                     # verify
+python -m scripts.ask_pdf contract.pdf report.pdf -q "Does the liability cap in Section 7 exceed Section 9?"
+python -m scripts.ask_pdf contract.pdf -q "..." --no-retrieval       # the same model without documents
+```
+
+How an answer is produced and checked:
+
+1. **Retrieve** the best passages (BM25 + dense + RRF + cross-encoder rerank, sub-queries for compound questions).
+2. **Gate**: if the best relevance score or the question-term coverage is too low, answer
+   `INSUFFICIENT EVIDENCE` without calling the model (the model never fills gaps from general knowledge).
+3. **Generate** a JSON answer from the numbered passages `[E1] ...` (document text is untrusted data).
+4. **Verify** every citation independently: document exists, page exists, clause exists, the quote occurs in the
+   cited passage, the passage was retrieved for this question, and the passage supports the claim's numbers and
+   key terms. If the draft fails, the model is told why and may rewrite it once.
+5. **Confidence** (HIGH / MEDIUM / LOW) is computed from the verification results, not taken from the model.
+
+Known limits: the validator checks lexical and numeric support, not logical entailment; an answer with some
+unverified claims is still shown (flagged, with lower confidence); conflict detection is heuristic.
