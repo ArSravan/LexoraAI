@@ -20,10 +20,10 @@ from config import Settings, get_settings
 from generation import prompts
 from generation.ollama_client import OllamaClient, OllamaError
 from retrieval import hybrid
-from schemas import AnswerResult, LLMAnswer, VerifiedClaim
+from schemas import AnswerResult, Conflict, LLMAnswer, VerifiedClaim
 from services import indexer
 from textutil import clause_key
-from verification import abstention, citation_validator, evidence_checker
+from verification import abstention, citation_validator, conflict_detector, evidence_checker
 from verification.citation_validator import CaseDoc
 from verification.evidence_checker import Sufficiency
 
@@ -132,8 +132,10 @@ class AnswerService:
             if not suff.sufficient:
                 return self._abstain(res, question, hits, names, suff, t_start)
 
+            res.comparisons = conflict_detector.compare_amounts(question, hits)
+            figures = "\n".join(f"- {c.result}" for c in res.comparisons)
             messages = [{"role": "system", "content": prompts.SYSTEM_PROMPT},
-                        {"role": "user", "content": prompts.build_user_prompt(question, hits)}]
+                        {"role": "user", "content": prompts.build_user_prompt(question, hits, figures)}]
             status("Generating answer with the local LLM")
             t_gen = time.perf_counter()
             verified: list[VerifiedClaim] = []
@@ -171,7 +173,13 @@ class AnswerService:
             res.claims = verified
             res.answer = llm.answer
             res.reasoning_summary = llm.reasoning_summary
-            res.confidence, res.confidence_factors = compute_confidence(suff, verified, 0, s)
+            res.conflicts = conflict_detector.detect_conflicts(hits)
+            for lc in llm.conflicts:        # a conflict reported by the model is kept only if it cites retrieved evidence
+                if lc.description and any(citation_validator.resolve_chunk(src, hits, docs)[0] for src in lc.sources):
+                    res.conflicts.append(Conflict(kind="llm", topic="reported by the model", classification="CONFLICT",
+                                                  explanation=lc.description, sources=lc.sources))
+            n_hard = sum(1 for c in res.conflicts if c.classification == "CONFLICT")
+            res.confidence, res.confidence_factors = compute_confidence(suff, verified, n_hard, s)
         except (OllamaError, AnswerFormatError) as e:
             res.error = str(e)
             res.answer = f"The local LLM could not be used: {e}"

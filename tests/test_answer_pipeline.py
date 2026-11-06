@@ -219,3 +219,54 @@ def test_case_docs_expose_page_counts_and_clause_labels_to_the_verifier(case):
     assert set(docs) == {"Statute.pdf", "Vendor_Agreement.pdf"} and docs["Statute.pdf"].page_count == 3
     assert {"3(2)", "3(2)(a)", "2(c)(i)", "recital1"} <= docs["Statute.pdf"].labels
     assert "7.1" in docs["Vendor_Agreement.pdf"].labels and "table9.1" in docs["Vendor_Agreement.pdf"].labels
+
+
+# ------------------------------------------------------------------------------ comparisons and conflicts
+CAP_Q = "Does the liability cap in Section 7 exceed the total indemnity obligations in Section 9?"
+
+
+def test_the_machine_comparison_reaches_the_prompt_and_the_result(case):
+    res, client = ask(case, grounded_answer, question=CAP_Q)
+    expected = "EUR 10,000,000 (ref. 7) exceeds EUR 8,000,000 (ref. 9); difference 2,000,000."
+    assert [c.result for c in res.comparisons] == [expected]
+    user = client.calls[0][1]["content"]
+    assert "MACHINE-EXTRACTED FIGURES" in user and f"- {expected}" in user
+
+
+def test_a_question_without_a_comparison_gets_no_figures_block(case):
+    _, client = ask(case, grounded_answer)
+    assert "MACHINE-EXTRACTED FIGURES" not in client.calls[0][1]["content"]
+
+
+@pytest.fixture
+def revenue_case(fake_embedder, fake_reranker, tmp_path, monkeypatch):
+    for k, v in {"ABSTAIN_RERANK_MIN": "0.5", "MEDIUM_CONF_RERANK": "0.5", "HIGH_CONF_RERANK": "3.0"}.items():
+        monkeypatch.setenv(f"LEXORA_{k}", v)
+    get_settings.cache_clear()
+    rows = {"Report.pdf": ["Total revenue for FY2025 was EUR 120 million.", "Operating costs were stable during the year."],
+            "Board.pdf": ["Total revenue for FY2025 was EUR 150 million.", "The board approved the dividend proposal."]}
+    for i, (name, lines) in enumerate(rows.items()):
+        indexer.index_pdf("c5", f"d{i}", make_pdf(tmp_path / name, [[(60, 780 - 18 * j, t) for j, t in enumerate(lines)]]), name)
+    return "c5"
+
+
+def test_conflicting_figures_across_documents_are_shown_and_cap_the_confidence(revenue_case):
+    res, _ = ask(revenue_case, grounded_answer, question="What was the total revenue for FY2025?")
+    (c,) = [x for x in res.conflicts if x.kind == "amount"]
+    assert c.classification == "CONFLICT" and set(c.values) == {"EUR 120,000,000", "EUR 150,000,000"}
+    assert {s.document for s in c.sources} == {"Report.pdf", "Board.pdf"}
+    assert res.confidence == "MEDIUM" and any("conflicting figure(s)" in f for f in res.confidence_factors)
+    assert not res.abstained and res.claims[0].status == "VERIFIED"      # shown, not resolved: the answer stands
+
+
+def test_a_conflict_reported_by_the_model_is_kept_only_if_it_cites_retrieved_evidence(case):
+    def with_conflicts(messages):
+        d = json.loads(grounded_answer(messages))
+        d["conflicts"] = [{"description": "The passages disagree about the cap.", "sources": [{"passage_id": "E1"}]},
+                          {"description": "Invented disagreement.", "sources": [{"passage_id": "E9", "document": "Nope.pdf", "page": 1}]},
+                          {"description": "", "sources": [{"passage_id": "E1"}]}]
+        return json.dumps(d)
+    res, _ = ask(case, with_conflicts)
+    llm = [c for c in res.conflicts if c.kind == "llm"]
+    assert [c.explanation for c in llm] == ["The passages disagree about the cap."]
+    assert res.confidence == "MEDIUM"                                        # a hard conflict caps HIGH
