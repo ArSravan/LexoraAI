@@ -43,3 +43,40 @@ def clause_key(label: str) -> str:
     s = normalize(label)
     s = re.sub(r"\b(article|art\.?|section|sec\.?|clause|paragraph|para\.?|§)\s*", "", s)
     return re.sub(r"[\s.]+$", "", s.replace(" ", ""))
+
+
+# --------------------------------------------------------------------------- numbers
+_MULT = {"thousand": 1e3, "k": 1e3, "million": 1e6, "m": 1e6, "mn": 1e6, "billion": 1e9, "bn": 1e9, "b": 1e9}
+# "Article 83(5)", "Section 7.2", "page 14", "Table 9.1" ... : references, not quantities
+_REF = re.compile(r"(?i)\b(article|art\.|section|clause|paragraph|para\.|page|pages|p\.|pp\.|table|annex|recital)\s*"
+                  r"\d+(?:[.\-]\d+)*(?:\([a-z0-9]+\))*")
+_NUM = re.compile(r"(?<![\w.])(\d{1,3}(?:[ ,\u00a0\u202f]\d{3})+(?:\.\d+)?|\d+(?:[.,]\d+)?)"
+                  r"\s*(thousand|million|billion|mn|bn|m|k|b)?\b", re.I)
+
+
+def numbers(text: str, strip_refs: bool = True) -> set[float]:
+    """Every quantity in ``text`` as a float, with unit multipliers applied.
+
+    '20 000 000 EUR', 'EUR 20 million' and '20,000,000' all give 20000000.0, so a claim phrased one
+    way can be checked against evidence phrased another way. Clause/page references such as
+    'Article 83(5)' or 'page 14' are ignored unless ``strip_refs`` is False.
+    """
+    text = normalize(text)
+    if strip_refs:
+        text = _REF.sub(" ", text)
+    out: set[float] = set()
+    for m in _NUM.finditer(text):
+        raw, mult = m.group(1), m.group(2)
+        raw = re.sub(r"[\s\u00a0\u202f]", "", raw)
+        if re.fullmatch(r"\d{1,3}(,\d{3})+(\.\d+)?", raw):
+            raw = raw.replace(",", "")                  # 10,000,000
+        elif "," in raw and "." not in raw:
+            raw = raw.replace(",", ".")                 # decimal comma: 1,5 million
+        try:
+            v = float(raw)
+        except ValueError:
+            continue
+        if mult:
+            v *= _MULT.get(mult.lower(), 1)
+        out.add(round(v, 4))
+    return out

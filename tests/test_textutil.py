@@ -34,3 +34,26 @@ def test_clause_key_ignores_the_word_before_the_number():
     assert clause_key("Section 7.2") == clause_key("7.2") == "7.2"
     assert clause_key("Art. 6 (1)(a)") == "6(1)(a)"
     assert clause_key("Recital 4") == "recital4"
+
+
+from LexoraAI.textutil import numbers  # noqa: E402
+
+
+@pytest.mark.parametrize("text", ["20 000 000 EUR", "EUR 20 million", "20,000,000", "€20m", "20 mn euros"])
+def test_the_same_amount_written_differently_gives_the_same_number(text):
+    assert numbers(text) == {20_000_000.0}
+
+
+def test_percentages_decimals_and_decimal_commas():
+    assert numbers("up to 4 % of annual turnover") == {4.0}
+    assert numbers("1.5 million") == {1_500_000.0} and numbers("1,5 million") == {1_500_000.0}
+    assert numbers("1,500") == {1500.0}
+
+
+def test_clause_and_page_references_are_not_quantities():
+    assert numbers("Article 83(5) on page 14: fines up to 20 000 000 EUR, Section 7.2, Table 9.1") == {20_000_000.0}
+    assert {83.0, 5.0, 14.0} <= numbers("Article 83(5) on page 14", strip_refs=False)
+
+
+def test_dates_and_plain_text():
+    assert numbers("entered into force on 25 May 2018") == {25.0, 2018.0} and numbers("no figures here") == set()

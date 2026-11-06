@@ -113,3 +113,100 @@ class RetrievedChunk(BaseModel):
     rerank_score: float | None = None       # cross-encoder logit
     rerank_prob: float | None = None        # sigmoid(logit)
     final_rank: int = 0
+
+
+# ---------------------------------------------------------------------------- answers
+# What the LLM is asked to produce (validated, never trusted) ...
+class EvidenceRef(BaseModel):
+    passage_id: str = ""                    # "E1", "E2" ... as numbered in the prompt
+    document: str = ""
+    page: int | None = None
+    clause: str = ""
+    supporting_text: str = ""               # a short verbatim quote
+
+
+class Claim(BaseModel):
+    claim: str
+    evidence: list[EvidenceRef] = Field(default_factory=list)
+
+
+class LLMConflict(BaseModel):
+    description: str = ""
+    sources: list[EvidenceRef] = Field(default_factory=list)
+
+
+class LLMAnswer(BaseModel):
+    answer: str
+    claims: list[Claim] = Field(default_factory=list)
+    reasoning_summary: str = ""
+    confidence: Literal["HIGH", "MEDIUM", "LOW"] = "LOW"     # the model's own guess; it is re-computed later
+    abstained: bool = False
+    conflicts: list[LLMConflict] = Field(default_factory=list)
+
+
+# ... and what the verifier makes of it.
+class CheckResult(BaseModel):
+    document_exists: bool = False
+    page_exists: bool = False
+    clause_exists: bool = False
+    text_in_passage: bool = False
+    passage_retrieved: bool = False
+    supports_claim: bool = False
+    match_ratio: float = 0.0
+
+
+class VerifiedEvidence(BaseModel):
+    ref: EvidenceRef
+    status: Literal["VERIFIED", "PARTIAL", "UNVERIFIED", "FABRICATED"]
+    checks: CheckResult
+    matched_chunk_id: str | None = None
+    notes: list[str] = Field(default_factory=list)
+    document_id: str = ""                   # the rest is what the evidence viewer needs
+    page_index: int | None = None
+    bbox: list[float] | None = None
+    section: str = ""
+    source_text: str = ""
+
+
+class VerifiedClaim(BaseModel):
+    claim: str
+    status: Literal["VERIFIED", "PARTIAL", "UNVERIFIED"]
+    evidence: list[VerifiedEvidence]
+
+
+class Conflict(BaseModel):
+    kind: Literal["amount", "percentage", "date", "clause", "llm"]
+    topic: str
+    classification: Literal["CONFLICT", "EXPLAINED_DIFFERENCE"]
+    explanation: str
+    sources: list[EvidenceRef]
+    values: list[str] = Field(default_factory=list)
+
+
+class AmountComparison(BaseModel):
+    description: str
+    values: list[dict]
+    result: str
+
+
+class AnswerResult(BaseModel):
+    """The final response of the pipeline, as returned by the API."""
+    question: str
+    case_id: str
+    answer: str
+    abstained: bool
+    confidence: Literal["HIGH", "MEDIUM", "LOW", "INSUFFICIENT EVIDENCE"]
+    confidence_factors: list[str] = Field(default_factory=list)
+    claims: list[VerifiedClaim] = Field(default_factory=list)
+    reasoning_summary: str = ""
+    conflicts: list[Conflict] = Field(default_factory=list)
+    comparisons: list[AmountComparison] = Field(default_factory=list)
+    retrieved: list[RetrievedChunk] = Field(default_factory=list)
+    abstention: dict | None = None
+    mode: str = "hybrid"
+    model: str = ""
+    use_retrieval: bool = True
+    retry_log: list[str] = Field(default_factory=list)
+    timings: dict = Field(default_factory=dict)
+    tokens: dict = Field(default_factory=dict)
+    error: str = ""
