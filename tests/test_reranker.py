@@ -64,7 +64,7 @@ def test_retrieve_with_rerank_returns_final_k_scored_hits(case, fake_reranker):
     assert [h.final_rank for h in hits] == [1, 2, 3]
     assert all(h.rerank_score is not None and 0 < h.rerank_prob < 1 for h in hits)
     assert [h.rerank_score for h in hits] == sorted((h.rerank_score for h in hits), reverse=True)
-    assert set(timings) == {"search_s", "rerank_s"}
+    assert set(timings) == {"search_s", "rerank_s", "sub_queries"} and timings["sub_queries"] == []
 
 
 def test_the_cross_encoder_scores_only_the_first_stage_candidates(case, fake_reranker):

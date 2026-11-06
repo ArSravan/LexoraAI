@@ -42,6 +42,7 @@ class Settings:
     final_top_k: int = 5                # passages finally handed to the LLM
     rrf_k: int = 60                     # Reciprocal Rank Fusion constant
     dense_min_similarity: float = 0.0   # dense hits below this cosine similarity are dropped
+    query_decomposition: bool = True    # split compound (multi-hop) questions into sub-queries
 
 
 def _cast(raw: str, typ: type):
