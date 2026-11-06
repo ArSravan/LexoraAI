@@ -78,3 +78,24 @@ def test_hostile_identifiers_are_rejected(bad):
 
 def test_valid_identifiers_are_accepted():
     assert check_id("c1a2b3_c-4") == "c1a2b3_c-4"
+
+
+def test_document_metadata_is_recorded_for_the_verifier(indexed):
+    docs = {d["document_id"]: d for d in indexer.case_documents(indexed)}
+    assert set(docs) == {"statute", "contract"}
+    st = docs["statute"]
+    assert st["filename"] == "Statute.pdf" and st["page_count"] == 3 and len(st["sha256"]) == 64
+    assert {"3(2)", "3(2)(a)", "Recital 1"} <= set(st["labels"]) and st["n_chunks"] > 5
+    assert docs["contract"]["page_count"] >= 1 and "7.1" in docs["contract"]["labels"]
+    assert [d["filename"] for d in indexer.case_documents(indexed)] == ["Statute.pdf", "Vendor_Agreement.pdf"]
+
+
+def test_metadata_is_replaced_on_reindex_and_removed_with_the_document(indexed, eu_style_pdf):
+    indexer.index_pdf(indexed, "statute", eu_style_pdf, "Renamed.pdf")
+    assert {d["filename"] for d in indexer.case_documents(indexed)} == {"Renamed.pdf", "Vendor_Agreement.pdf"}
+    indexer.remove_document(indexed, "statute")
+    assert [d["document_id"] for d in indexer.case_documents(indexed)] == ["contract"]
+
+
+def test_a_case_without_documents_has_no_metadata():
+    assert indexer.case_documents("nothing-here") == []

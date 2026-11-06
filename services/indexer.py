@@ -19,7 +19,7 @@ from ingestion.pdf_parser import parse_pdf
 from retrieval import hybrid, vector_store
 from retrieval.embeddings import embed_texts
 from schemas import Chunk, ParsedDocument
-from services.paths import case_dir, chunks_file
+from services.paths import case_dir, chunks_file, doc_dir
 
 _write_lock = threading.Lock()
 Progress = Callable[[float, str], None]
@@ -38,6 +38,23 @@ def _write_rows(case_id: str, rows: list[dict]) -> None:
     tmp.write_text(json.dumps(rows), encoding="utf-8")
     tmp.replace(f)
     hybrid.invalidate(case_id)
+
+
+def _write_meta(case_id: str, parsed: ParsedDocument, result: ChunkResult) -> None:
+    """What the citation validator later needs to know about a document: it exists, how many pages it
+    has, and which clause labels were found in it."""
+    d = doc_dir(case_id, parsed.document_id)
+    d.mkdir(parents=True, exist_ok=True)
+    meta = {"document_id": parsed.document_id, "filename": parsed.filename, "page_count": parsed.page_count,
+            "sha256": parsed.sha256, "labels": result.structure["labels"], "n_chunks": len(result.chunks),
+            "warnings": parsed.warnings}
+    (d / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+
+
+def case_documents(case_id: str) -> list[dict]:
+    """The metadata of every indexed document of a case (sorted by file name)."""
+    metas = [json.loads(f.read_text(encoding="utf-8")) for f in (case_dir(case_id) / "docs").glob("*/meta.json")]
+    return sorted(metas, key=lambda m: m["filename"].lower())
 
 
 def case_chunks(case_id: str) -> list[Chunk]:
@@ -60,6 +77,7 @@ def index_parsed(case_id: str, parsed: ParsedDocument, progress: Progress | None
         rows = [r for r in _read_rows(case_id) if r["document_id"] != parsed.document_id]
         rows.extend(c.model_dump() for c in chunks)
         _write_rows(case_id, rows)
+        _write_meta(case_id, parsed, result)
     prog(1.0, "Indexed")
     return result
 
@@ -78,6 +96,7 @@ def remove_document(case_id: str, document_id: str) -> None:
     with _write_lock:
         vector_store.delete_document(case_id, document_id)
         _write_rows(case_id, [r for r in _read_rows(case_id) if r["document_id"] != document_id])
+    shutil.rmtree(doc_dir(case_id, document_id), ignore_errors=True)
 
 
 def remove_case(case_id: str) -> None:
