@@ -145,3 +145,22 @@ def test_supports_claim_checks_numbers_and_terms():
     assert not supports_claim("liability shall not exceed EUR 12 million", "", ev)      # wrong number
     assert not supports_claim("The tenant must repaint the building annually", "", ev)  # unrelated terms
     assert supports_claim("Section 7.2 limits liability to EUR 10 million", "", ev)      # "7.2" is a reference, not a number
+
+
+@pytest.mark.parametrize("blank", ["-", "–", "n/a", "None", " - ", ""])
+def test_a_passage_without_a_clause_can_be_cited_with_the_placeholder_the_prompt_shows(blank):
+    # unstructured documents (annual reports, scans) have no clause numbers; the prompt header says 'clause: -'
+    text = "Total revenue for FY2025 was EUR 120 million."
+    hits = [RetrievedChunk(chunk=make_chunk("r1", text, clause="", page=2, name="Report.pdf", doc="r"))]
+    docs = [CaseDoc("r", "Report.pdf", 5, set())]
+    r = EvidenceRef(passage_id="E1", document="Report.pdf", page=2, clause=blank, supporting_text="revenue for FY2025 was EUR 120 million")
+    v = validate_evidence(r, "Revenue for FY2025 was EUR 120 million.", hits, docs)
+    assert v.status == "VERIFIED" and v.checks.clause_exists and v.notes == []
+
+
+def test_a_clause_cannot_be_invented_for_a_passage_that_has_none():
+    hits = [RetrievedChunk(chunk=make_chunk("r1", "Total revenue was EUR 120 million.", clause="", page=2, name="Report.pdf", doc="r"))]
+    docs = [CaseDoc("r", "Report.pdf", 5, set())]
+    r = EvidenceRef(passage_id="E1", document="Report.pdf", page=2, clause="4.1", supporting_text="revenue was EUR 120 million")
+    v = validate_evidence(r, "Revenue was EUR 120 million.", hits, docs)
+    assert v.status != "VERIFIED" and not v.checks.clause_exists

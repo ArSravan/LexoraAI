@@ -89,6 +89,17 @@ def supports_claim(claim: str, quote: str, passage: str) -> bool:
     return len(terms & present) / len(terms) >= 0.5
 
 
+_NO_CLAUSE = {"-", "\u2013", "\u2014", "n/a", "na", "none", "null", "unknown"}
+
+
+def _clean_ref(ref: EvidenceRef) -> EvidenceRef:
+    """The prompt prints 'clause: -' for passages without a clause number, so a model that copies the header
+    exactly cites '-'. That means "no clause", not a clause called '-'."""
+    if ref.clause.strip().lower() in _NO_CLAUSE:
+        return ref.model_copy(update={"clause": ""})
+    return ref
+
+
 def _related(a: str, b: str) -> bool:
     """Same clause, or one is a sub-clause of the other ('3(2)' ~ '3(2)(a)', but '7' is not '70')."""
     return a == b or a.startswith(b + "(") or a.startswith(b + ".") or b.startswith(a + "(") or b.startswith(a + ".")
@@ -98,10 +109,11 @@ def _source_text(c) -> str:
     return f"{c.lead_in} {c.text}" if c.lead_in else c.text
 
 
-def _resolve_chunk(ref: EvidenceRef, hits: list[RetrievedChunk],
+def resolve_chunk(ref: EvidenceRef, hits: list[RetrievedChunk],
                    docs: list[CaseDoc]) -> tuple[RetrievedChunk | None, list[str]]:
     """Find the retrieved passage a citation points to: by id ("E2" = hits[1]), else by (document, page, clause)."""
     notes: list[str] = []
+    ref = _clean_ref(ref)
     m = re.fullmatch(r"(?i)e?(\d+)", (ref.passage_id or "").strip())
     if m and 1 <= int(m.group(1)) <= len(hits):
         return hits[int(m.group(1)) - 1], notes
@@ -119,7 +131,8 @@ def _resolve_chunk(ref: EvidenceRef, hits: list[RetrievedChunk],
 
 def validate_evidence(ref: EvidenceRef, claim: str, hits: list[RetrievedChunk], docs: list[CaseDoc],
                       quote_min: float = 0.85) -> VerifiedEvidence:
-    hit, notes = _resolve_chunk(ref, hits, docs)
+    ref = _clean_ref(ref)
+    hit, notes = resolve_chunk(ref, hits, docs)
     ch = hit.chunk if hit else None
     ref = ref.model_copy()
     checks = CheckResult()
