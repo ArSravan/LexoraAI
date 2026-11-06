@@ -1,4 +1,5 @@
 """Shared fixtures: small PDFs are generated on the fly, so no binary test data is committed."""
+import json
 import zlib
 from pathlib import Path
 
@@ -122,7 +123,7 @@ class FakeEmbeddingModel:
 
     def encode(self, texts, batch_size=32, normalize_embeddings=True, show_progress_bar=False,
                convert_to_numpy=True):
-        from LexoraAI.textutil import stem, words
+        from textutil import stem, words
         self.encoded += list(texts)
         out = np.zeros((len(texts), self.DIM), dtype=np.float32)
         for r, t in enumerate(texts):
@@ -138,3 +139,15 @@ def fake_embedder(monkeypatch) -> FakeEmbeddingModel:
     model = FakeEmbeddingModel()
     monkeypatch.setattr(embeddings, "get_model", lambda name=None: model)
     return model
+
+
+def index_chunks(case_id: str, chunks: list[Chunk]) -> None:
+    """Put ready-made chunks into both stores (vectors + chunks.json) the way the indexer does."""
+    from retrieval import hybrid, vector_store
+    from retrieval.embeddings import embed_texts
+    from services.paths import chunks_file
+    vector_store.add_chunks(case_id, chunks, embed_texts([c.index_text for c in chunks]))
+    f = chunks_file(case_id)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps([c.model_dump() for c in chunks]), encoding="utf-8")
+    hybrid.invalidate(case_id)

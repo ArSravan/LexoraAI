@@ -33,6 +33,11 @@ class Settings:
     tables_enabled: bool = True
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 32
+    retrieval_mode: str = "hybrid"      # bm25 | dense | hybrid
+    initial_top_k: int = 20             # candidates fetched per retriever / kept after fusion
+    final_top_k: int = 5                # passages finally handed to the LLM
+    rrf_k: int = 60                     # Reciprocal Rank Fusion constant
+    dense_min_similarity: float = 0.0   # dense hits below this cosine similarity are dropped
 
 
 def _cast(raw: str, typ: type):
