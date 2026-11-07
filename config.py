@@ -24,6 +24,7 @@ load_dotenv(ROOT / ".env")
 class Settings:
     storage_dir: Path = ROOT / "storage"
     max_upload_mb: int = 50
+    max_docs_per_case: int = 5
     scanned_min_chars: int = 30   # a page with fewer extracted characters counts as "no text"
     seed: int = 42
     ocr_enabled: bool = True
