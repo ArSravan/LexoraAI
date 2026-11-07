@@ -1,0 +1,18 @@
+# docker compose up --build        then open http://127.0.0.1:8501
+# Ollama must run on the host (ollama serve); the container reaches it through host.docker.internal.
+services:
+  lexora:
+    build: .
+    ports:
+      - "127.0.0.1:8501:8501"      # UI
+      - "127.0.0.1:8000:8000"      # API (docs at /docs)
+    environment:
+      LEXORA_OLLAMA_BASE_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"     # needed on Linux; Docker Desktop provides it already
+    volumes:
+      - lexora-data:/data                        # uploaded documents, indexes, database
+      - hf-cache:/root/.cache/huggingface        # the two small models are downloaded once
+volumes:
+  lexora-data:
+  hf-cache:
