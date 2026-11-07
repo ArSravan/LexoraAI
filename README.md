@@ -21,7 +21,9 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 - [x] Local LLM answers (Ollama) as structured JSON, independent citation validation (six checks),
       evidence-sufficiency gate with abstention, verifier retry loop, computed confidence,
       numeric comparison and cross-document conflict detection
-- [ ] API, UI, one-command run, Docker
+- [x] SQLite store, background indexing jobs with progress, FastAPI backend (upload validation, streaming answers,
+      evidence page images), Streamlit UI, one-command start (`python run.py`, Makefile)
+- [ ] Docker: `Dockerfile` and `docker-compose.yml` are written but NOT yet built or tested
 - [ ] Evaluation and tests
 
 This list is updated as each part is actually committed.
@@ -92,3 +94,29 @@ How an answer is produced and checked:
 
 Known limits: the validator checks lexical and numeric support, not logical entailment; an answer with some
 unverified claims is still shown (flagged, with lower confidence); conflict detection is heuristic.
+
+## Run the application
+
+```bash
+ollama pull qwen3.5:9b          # once; Ollama must be running (ollama serve or the tray app)
+python run.py                   # starts the API and the UI and opens http://127.0.0.1:8501
+```
+or `make run`. `python main.py` starts only the API (interactive docs at http://127.0.0.1:8000/docs) and
+`streamlit run app.py` only the UI. Change ports with `API_PORT` / `UI_PORT`.
+
+1. **Cases and documents**: create a case, drag in the PDFs. A progress bar follows extraction, OCR, chunking and
+   embedding; each document shows its pages, chunks, tables and scanned pages, and its pages can be previewed.
+2. **Ask**: choose search mode, reranking, number of passages, or switch retrieval off for the baseline. Every claim
+   shows its citations with the six verification checks; a toggle shows the cited page with the quote highlighted
+   (yellow) and the clause region outlined (blue).
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/status`, `/api/stats` | Ollama / OCR availability, question log |
+| `POST /api/cases`, `GET/DELETE /api/cases/{id}` | cases |
+| `POST /api/cases/{id}/documents` | upload (validated: `.pdf` name, `%PDF` header, size, encryption, duplicates) |
+| `GET /api/jobs/{id}` | indexing progress |
+| `GET /api/documents/{id}/info`, `/pages/{n}`, `/pages/{n}/image` | explorer and evidence viewer (images only, never the raw PDF) |
+| `POST /api/cases/{id}/ask`, `/ask/stream` | answer (complete JSON, or newline-delimited events) |
+
+Docker (`docker compose up --build`) is written but has not been built or run yet.
