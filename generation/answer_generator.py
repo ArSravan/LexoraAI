@@ -21,7 +21,7 @@ from generation import prompts
 from generation.ollama_client import OllamaClient, OllamaError
 from retrieval import hybrid
 from schemas import AnswerResult, Conflict, LLMAnswer, VerifiedClaim
-from services import indexer
+from services import db, indexer
 from textutil import clause_key
 from verification import abstention, citation_validator, conflict_detector, evidence_checker
 from verification.citation_validator import CaseDoc
@@ -109,6 +109,17 @@ class AnswerService:
                rerank: bool | None = None, use_retrieval: bool = True, final_k: int | None = None,
                on_token: Callable[[str], None] | None = None,
                on_status: Callable[[str], None] | None = None) -> AnswerResult:
+        """Answer one question about a case and record it in the question log."""
+        res = self._answer(case_id, question, mode, model, rerank, use_retrieval, final_k, on_token, on_status)
+        try:
+            db.log_qa(res.case_id, res.question, res.abstained, res.confidence, res.mode, res.model,
+                      res.timings.get("total_s", 0.0))
+        except Exception:  # noqa: BLE001 - logging must never break answering
+            pass
+        return res
+
+    def _answer(self, case_id: str, question: str, mode: str | None, model: str | None, rerank: bool | None,
+                use_retrieval: bool, final_k: int | None, on_token, on_status) -> AnswerResult:
         s = get_settings()
         status = on_status or (lambda m: None)
         mode = mode or s.retrieval_mode

@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import json
+import queue
 import shutil
+import threading
 from functools import lru_cache
+from typing import Literal
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from config import get_settings
+from generation.answer_generator import AnswerService
 from generation.ollama_client import OllamaClient
 from ingestion import ocr as ocr_mod
 from ingestion.pdf_parser import PDFValidationError, safe_filename, sha256_file, validate_pdf
@@ -233,3 +237,60 @@ def page_image(doc_id: str, page_number: int, quote: str = "", chunk_id: str = "
     except IndexError:
         raise HTTPException(404, "Page not found") from None
     return Response(png, media_type="image/png", headers={"X-Highlight": json.dumps(info), "Cache-Control": "no-store"})
+
+
+# ------------------------------------------------------------------ asking questions
+class AskIn(BaseModel):
+    question: str = Field(min_length=3, max_length=2000)
+    mode: Literal["bm25", "dense", "hybrid"] = "hybrid"
+    model: str | None = None                    # an Ollama model name, to override the configured one
+    rerank: bool | None = None                  # None = use the setting
+    use_retrieval: bool = True                  # False = the no-retrieval baseline (ungrounded)
+    final_k: int | None = Field(default=None, ge=1, le=20)
+
+
+def answer_service() -> AnswerService:
+    """One service per request, so a changed setting applies to the next question."""
+    return AnswerService()
+
+
+def _require_indexed(case_id: str, body: AskIn) -> None:
+    _case_or_404(case_id)
+    if body.use_retrieval and not any(d["status"] == "indexed" for d in db.list_documents(case_id)):
+        raise HTTPException(409, "No indexed documents in this case yet.")
+
+
+@router.post("/cases/{case_id}/ask")
+def ask(case_id: str, body: AskIn):
+    """Answer a question about the case's documents: the complete AnswerResult as JSON."""
+    _require_indexed(case_id, body)
+    res = answer_service().answer(case_id, body.question, body.mode, body.model, body.rerank,
+                                  body.use_retrieval, body.final_k)
+    return res.model_dump()
+
+
+@router.post("/cases/{case_id}/ask/stream")
+def ask_stream(case_id: str, body: AskIn):
+    """The same, as newline-delimited JSON: {"type": "status"|"token"|"result"|"error", ...}, so a client can
+    show progress while the (slow) local model works."""
+    _require_indexed(case_id, body)
+    q: queue.Queue = queue.Queue()
+
+    def work() -> None:
+        try:
+            res = answer_service().answer(
+                case_id, body.question, body.mode, body.model, body.rerank, body.use_retrieval, body.final_k,
+                on_token=lambda t: q.put({"type": "token", "text": t}),
+                on_status=lambda m: q.put({"type": "status", "text": m}))
+            q.put({"type": "result", "result": res.model_dump()})
+        except Exception as e:  # noqa: BLE001 - the client must always get a final line
+            q.put({"type": "error", "text": str(e)})
+        q.put(None)
+
+    threading.Thread(target=work, daemon=True).start()
+
+    def lines():
+        while (item := q.get()) is not None:
+            yield json.dumps(item) + "\n"
+
+    return StreamingResponse(lines(), media_type="application/x-ndjson")
