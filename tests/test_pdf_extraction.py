@@ -109,3 +109,10 @@ def test_single_column_page_is_not_mistaken_for_two_columns(tmp_path):
              for i in range(10)]
     pdf = make_pdf(tmp_path / "one.pdf", [items])
     assert [l.text.split()[1] for l in parse_pdf(pdf, "d").page(1).lines] == [f"{i:02d}" for i in range(10)]
+
+
+def test_progress_is_reported_per_page_and_ends_at_one(simple_pdf):
+    seen = []
+    parse_pdf(simple_pdf, "d", progress=lambda f, m: seen.append((f, m)))
+    assert [m for _, m in seen[:2]] == ["Extracting text: page 1/2", "Extracting text: page 2/2"]
+    assert [f for f, _ in seen] == sorted(f for f, _ in seen) and seen[-1] == (1.0, "Extraction complete")

@@ -15,10 +15,11 @@ from typing import Callable
 
 from config import get_settings
 from ingestion.chunker import ChunkResult, chunk_document
-from ingestion.pdf_parser import parse_pdf
+from ingestion.pdf_parser import PDFValidationError, parse_pdf
 from retrieval import hybrid, vector_store
 from retrieval.embeddings import embed_texts
 from schemas import Chunk, ParsedDocument
+from services import db
 from services.paths import case_dir, chunks_file, doc_dir
 
 _write_lock = threading.Lock()
@@ -90,6 +91,66 @@ def index_pdf(case_id: str, document_id: str, pdf: str | Path, filename: str | N
                        ocr_enabled=s.ocr_enabled, ocr_lang=s.ocr_lang, ocr_dpi=s.ocr_dpi,
                        tesseract_cmd=s.tesseract_cmd or None, tables_enabled=s.tables_enabled)
     return index_parsed(case_id, parsed, progress)
+
+
+def pdf_path(case_id: str, doc_id: str) -> Path:
+    """Where an uploaded PDF is kept. It is never served as a file: only rendered page images are."""
+    return doc_dir(case_id, doc_id) / "original.pdf"
+
+
+def load_parsed(case_id: str, doc_id: str) -> ParsedDocument | None:
+    """The cached extraction (parsed.json) of a document, or None."""
+    f = doc_dir(case_id, doc_id) / "parsed.json"
+    return ParsedDocument.model_validate_json(f.read_text(encoding="utf-8")) if f.exists() else None
+
+
+def load_structure(case_id: str, doc_id: str) -> dict:
+    """The detected structure summary (structure.json) of a document, or {}."""
+    f = doc_dir(case_id, doc_id) / "structure.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+
+
+def index_document(case_id: str, doc_id: str, force_reparse: bool = False,
+                   progress: Progress | None = None) -> dict:
+    """Index (or re-index) an uploaded document and keep its database record up to date.
+
+    The extraction is cached in parsed.json, so re-indexing after changing the chunk size or the embedding
+    model skips the slow part (OCR, tables); ``force_reparse`` redoes it (e.g. after installing Tesseract).
+    Returns the updated database record; failures are stored in the record and re-raised.
+    """
+    s = get_settings()
+    rec = db.get_document(doc_id)
+    if rec is None:
+        raise ValueError(f"Unknown document {doc_id}")
+    prog = progress or (lambda f, m: None)
+    d = doc_dir(case_id, doc_id)
+    db.update_document(doc_id, status="indexing", error="")
+    try:
+        parsed = None if force_reparse else load_parsed(case_id, doc_id)
+        if parsed is not None:
+            prog(0.5, "Using cached extraction")
+        else:
+            parsed = parse_pdf(pdf_path(case_id, doc_id), doc_id, rec["filename"], max_mb=s.max_upload_mb,
+                               scanned_min_chars=s.scanned_min_chars, ocr_enabled=s.ocr_enabled,
+                               ocr_lang=s.ocr_lang, ocr_dpi=s.ocr_dpi, tesseract_cmd=s.tesseract_cmd or None,
+                               tables_enabled=s.tables_enabled, progress=lambda f, m: prog(f * 0.5, m))
+            (d / "parsed.json").write_text(parsed.model_dump_json(), encoding="utf-8")
+        result = index_parsed(case_id, parsed, lambda f, m: prog(0.5 + 0.5 * f, m))
+        (d / "structure.json").write_text(json.dumps(result.structure), encoding="utf-8")
+        scanned = [p for p in parsed.pages if p.needs_ocr]
+        recovered = [p for p in scanned if p.method == "ocr"]
+        db.update_document(
+            doc_id, status="indexed", page_count=parsed.page_count, error="", warnings=parsed.warnings,
+            ocr_status=f"OCR {len(recovered)}/{len(scanned)} scanned pages" if scanned else "n/a",
+            n_sections=result.structure["n_sections"], n_clauses=result.structure["n_clauses"],
+            n_chunks=len(result.chunks), n_tables=result.structure["n_tables"], n_scanned=len(scanned))
+        return db.get_document(doc_id)
+    except PDFValidationError as e:
+        db.update_document(doc_id, status="failed", error=str(e))
+        raise
+    except Exception as e:  # noqa: BLE001 - recorded for the user, then re-raised for the job
+        db.update_document(doc_id, status="failed", error=f"{type(e).__name__}: {e}")
+        raise
 
 
 def remove_document(case_id: str, document_id: str) -> None:

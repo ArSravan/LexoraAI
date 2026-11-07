@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
+from typing import Callable
 
 import pymupdf
 
@@ -203,12 +204,13 @@ def _apply_ocr(page: ParsedPage, pg: "pymupdf.Page", dpi: int, lang: str) -> Non
 def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *,
               max_mb: float = 50, scanned_min_chars: int = 30, ocr_enabled: bool = True,
               ocr_lang: str = "eng", ocr_dpi: int = 200,
-              tesseract_cmd: str | None = None, tables_enabled: bool = True) -> ParsedDocument:
+              tesseract_cmd: str | None = None, tables_enabled: bool = True,
+              progress: Callable[[float, str], None] | None = None) -> ParsedDocument:
     """Validate and extract a PDF.
 
     A page with (almost) no text but an image is a scan: it is flagged ``needs_ocr`` and,
     when Tesseract is available, recovered with OCR (``method`` becomes "ocr"). Empty
-    extraction is never silently accepted.
+    extraction is never silently accepted. ``progress(fraction, message)`` is called while pages are read.
     """
     path = Path(path)
     page_count = validate_pdf(path, max_mb)
@@ -233,6 +235,8 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
                 elif chars == 0:
                     page.warning = "Blank page (no text and no images)."
             pages.append(page)
+            if progress:
+                progress((i + 1) / page_count * 0.7, f"Extracting text: page {i + 1}/{page_count}")
         metadata = {k: str(v) for k, v in (doc.metadata or {}).items() if v}
     removed = strip_headers_footers(pages)
     if removed:
@@ -240,7 +244,11 @@ def parse_pdf(path: str | Path, document_id: str, filename: str | None = None, *
     for p in pages:
         mark_footnotes(p)
     if tables_enabled:
+        if progress:
+            progress(0.75, "Extracting tables")
         _attach_tables(pages, path, warnings)
+    if progress:
+        progress(1.0, "Extraction complete")
     total_chars = sum(p.char_count for p in pages) + sum(
         len(c) for p in pages for t in p.tables for r in t.rows for c in r)
     if total_chars < scanned_min_chars:
