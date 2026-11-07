@@ -1,0 +1,5 @@
+[server]
+maxUploadSize = 50          # MB, the same limit as LEXORA_MAX_UPLOAD_MB (the API enforces it as well)
+
+[browser]
+gatherUsageStats = false
