@@ -1,10 +1,12 @@
 """REST API. Uploaded PDFs are only ever exposed as rendered page images, never as raw files."""
 from __future__ import annotations
 
+import json
 import shutil
 from functools import lru_cache
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from config import get_settings
@@ -13,6 +15,7 @@ from ingestion import ocr as ocr_mod
 from ingestion.pdf_parser import PDFValidationError, safe_filename, sha256_file, validate_pdf
 from services import db, indexer, jobs
 from services.paths import check_id
+from services.render import render_page_png
 
 router = APIRouter()
 
@@ -179,3 +182,54 @@ def get_job(job_id: str):
     if not job:
         raise HTTPException(404, "Unknown job")
     return job
+
+
+# ------------------------------------------------------------------ document explorer / evidence viewer
+@router.get("/documents/{doc_id}/info")
+def document_info(doc_id: str):
+    """Per-page summary (characters, scanned? OCR confidence, tables) and the detected structure."""
+    doc = _doc_or_404(doc_id)
+    parsed = indexer.load_parsed(doc["case_id"], doc_id)
+    structure = indexer.load_structure(doc_id=doc_id, case_id=doc["case_id"])
+    pages = [{"page_index": p.page_index, "page_number": p.page_number, "char_count": p.char_count,
+              "is_scanned": p.needs_ocr, "method": p.method, "ocr_confidence": p.ocr_confidence,
+              "n_tables": len(p.tables), "warning": p.warning} for p in parsed.pages] if parsed else []
+    return {"document": doc, "pages": pages, "structure": {k: v for k, v in structure.items() if k != "headings"},
+            "headings": structure.get("headings", [])[:300]}
+
+
+@router.get("/documents/{doc_id}/pages/{page_number}")
+def document_page(doc_id: str, page_number: int):
+    """The extracted text, footnotes, tables and chunks of one page (1-based)."""
+    doc = _doc_or_404(doc_id)
+    parsed = indexer.load_parsed(doc["case_id"], doc_id)
+    if not parsed or not 1 <= page_number <= parsed.page_count:
+        raise HTTPException(404, "Page not found")
+    p = parsed.pages[page_number - 1]
+    chunks = [c for c in indexer.case_chunks(doc["case_id"]) if c.document_id == doc_id and c.page_number == page_number]
+    return {"page_number": page_number, "page_index": p.page_index, "is_scanned": p.needs_ocr, "method": p.method,
+            "ocr_confidence": p.ocr_confidence, "warning": p.warning,
+            "text": "\n".join(l.text for l in p.lines if not l.is_footnote),
+            "footnotes": "\n".join(l.text for l in p.lines if l.is_footnote),
+            "tables": [{"bbox": t.bbox, "caption": t.caption, "rows": t.rows} for t in p.tables],
+            "chunks": [{"chunk_id": c.chunk_id, "clause": c.clause, "section": c.section, "chunk_type": c.chunk_type,
+                        "text": c.text, "bbox": c.bbox} for c in chunks]}
+
+
+@router.get("/documents/{doc_id}/pages/{page_number}/image")
+def page_image(doc_id: str, page_number: int, quote: str = "", chunk_id: str = "",
+               zoom: float = Query(1.6, ge=0.5, le=3.0)):
+    """The page as a PNG. ``quote`` is highlighted yellow; the region of ``chunk_id`` is outlined blue.
+    The X-Highlight header tells the client whether the quote was found on the page."""
+    doc = _doc_or_404(doc_id)
+    bbox = None
+    if chunk_id:
+        for c in indexer.case_chunks(doc["case_id"]):
+            if c.chunk_id == chunk_id and c.document_id == doc_id:
+                bbox = next((r.bbox for r in c.regions if r.page_index == page_number - 1), None)
+                break
+    try:
+        png, info = render_page_png(str(indexer.pdf_path(doc["case_id"], doc_id)), page_number - 1, zoom, quote[:400], bbox)
+    except IndexError:
+        raise HTTPException(404, "Page not found") from None
+    return Response(png, media_type="image/png", headers={"X-Highlight": json.dumps(info), "Cache-Control": "no-store"})
