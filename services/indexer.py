@@ -7,6 +7,7 @@ Two stores are written for every document:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import threading
@@ -56,6 +57,27 @@ def case_documents(case_id: str) -> list[dict]:
     """The metadata of every indexed document of a case (sorted by file name)."""
     metas = [json.loads(f.read_text(encoding="utf-8")) for f in (case_dir(case_id) / "docs").glob("*/meta.json")]
     return sorted(metas, key=lambda m: m["filename"].lower())
+
+
+def index_is_current(case_id: str) -> bool:
+    """True if the case has chunks AND every document in them has its metadata (page count, clause labels).
+
+    An index built by an older version of the code lacks that metadata. Retrieval still works on such an index, but the
+    verifier then knows no document, so it rejects every citation and every answer ends as "insufficient evidence"."""
+    doc_ids = {r["document_id"] for r in _read_rows(case_id)}
+    return bool(doc_ids) and all((doc_dir(case_id, d) / "meta.json").is_file() for d in doc_ids)
+
+
+def index_fingerprint(case_id: str) -> str:
+    """Identifies the exact content of a case's index. It changes whenever the case is indexed again, so results that
+    were computed from an earlier index (cached answers, for example) can be recognised as out of date."""
+    h = hashlib.sha1()
+    f = chunks_file(case_id)
+    if f.is_file():
+        h.update(f.read_bytes())
+    for meta in sorted((case_dir(case_id) / "docs").glob("*/meta.json")):
+        h.update(meta.read_bytes())
+    return h.hexdigest()[:16]
 
 
 def case_chunks(case_id: str) -> list[Chunk]:

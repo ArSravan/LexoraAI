@@ -28,6 +28,10 @@ from verification.citation_validator import CaseDoc
 from verification.evidence_checker import Sufficiency
 
 
+class StaleIndexError(RuntimeError):
+    """The case was indexed by an older version of the code, so its documents carry no metadata for the verifier."""
+
+
 class AnswerFormatError(RuntimeError):
     """The model did not return a valid answer object, even after one repair request."""
 
@@ -136,6 +140,12 @@ class AnswerService:
             status("Retrieving passages (BM25 + dense + RRF)" if mode == "hybrid" else f"Retrieving passages ({mode})")
             hits, tm = hybrid.retrieve(case_id, question, mode, final_k=final_k, rerank=rerank)
             res.retrieved = hits
+            known = {d.document_id for d in docs}
+            if any(h.chunk.document_id not in known for h in hits):
+                raise StaleIndexError(
+                    "This case's index is out of date: its documents have no metadata, so no citation could be verified "
+                    "and the model was not asked. Re-index the documents (Cases and documents > Re-index), or delete "
+                    "storage/cases and storage/chroma and upload them again.")
             res.timings.update({"retrieval_s": tm["search_s"], "rerank_s": tm["rerank_s"]})
 
             suff = evidence_checker.assess(question, hits, s)
@@ -191,6 +201,10 @@ class AnswerService:
                                                   explanation=lc.description, sources=lc.sources))
             n_hard = sum(1 for c in res.conflicts if c.classification == "CONFLICT")
             res.confidence, res.confidence_factors = compute_confidence(suff, verified, n_hard, s)
+        except StaleIndexError as e:
+            res.error = str(e)
+            res.answer = f"This case cannot be answered: {e}"
+            res.confidence = "LOW"
         except (OllamaError, AnswerFormatError) as e:
             res.error = str(e)
             res.answer = f"The local LLM could not be used: {e}"

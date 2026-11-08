@@ -30,7 +30,10 @@ def ensure_indexed(pdfs: list[Path]) -> str:
     """Index the PDFs into a case whose id is derived from their content, unless already done."""
     digests = sorted(sha256_file(p) for p in pdfs)
     case_id = "cli-" + hashlib.sha1("".join(digests).encode()).hexdigest()[:10]
-    if not chunks_file(case_id).exists():
+    if not indexer.index_is_current(case_id):
+        if chunks_file(case_id).exists():                  # saved by an older version: it cannot be used for answers
+            print("the saved index of these documents is out of date: rebuilding it", file=sys.stderr)
+            indexer.remove_case(case_id)
         for i, p in enumerate(pdfs):
             print(f"indexing {p.name} ...", file=sys.stderr)
             indexer.index_pdf(case_id, f"d{i}", p, p.name)
