@@ -41,7 +41,8 @@ def test_a_missing_file_is_downloaded_and_an_existing_one_is_kept(server, tmp_pa
     report = dl.download(files, tmp_path)
     assert report[0].startswith("downloaded A.pdf") and report[1] == "have B.pdf"
     assert (tmp_path / "A.pdf").read_bytes() == PDF and [p for p, *_ in server.seen] == ["/good"]      # B was not fetched
-    assert server.seen[0][1:] == ("application/pdf", "en")
+    # a fallback ("*/*;q=0.1") after application/pdf is what works against the real Publications Office server
+    assert server.seen[0][1:] == ("application/pdf, */*;q=0.1", "en")
 
 
 def test_the_output_folder_is_created(server, tmp_path):
