@@ -3,6 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Lexora AI", page_icon="⚖️", layout="wide", initial_sidebar_state="expanded")
 
+import _bootstrap  # noqa: E402,F401  (makes `import LexoraAI` work in either folder layout)
 from frontend import api  # noqa: E402
 from frontend.views import cases, chat  # noqa: E402
 

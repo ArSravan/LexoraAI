@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1
 RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /srv/LexoraAI
 COPY requirements.txt .
 # CPU-only PyTorch first (much smaller than the default build), then the rest, all pinned
 RUN pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu \

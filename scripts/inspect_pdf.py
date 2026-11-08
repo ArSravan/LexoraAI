@@ -11,6 +11,7 @@ import collections
 import sys
 from pathlib import Path
 
+import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 from config import get_settings
 from ingestion.chunker import chunk_document
 from ingestion.pdf_parser import parse_pdf

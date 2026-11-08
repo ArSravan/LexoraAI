@@ -14,6 +14,7 @@ import sys
 import time
 from pathlib import Path
 
+import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 from evaluation.metrics import aggregate, retrieval_scores
 from retrieval.hybrid import retrieve
 from scripts.search_pdf import CONFIGS, ensure_indexed

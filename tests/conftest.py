@@ -3,6 +3,7 @@ import json
 import zlib
 from pathlib import Path
 
+import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 import numpy as np
 import pytest
 from reportlab.lib.pagesizes import A4

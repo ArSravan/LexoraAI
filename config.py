@@ -14,7 +14,9 @@ from typing import Mapping, get_type_hints
 
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parents[1]
+_HERE = Path(__file__).resolve().parent
+# the project root is where app.py lives: next to this file (the project folder IS the package) or one level up
+ROOT = _HERE if (_HERE / "app.py").is_file() else _HERE.parent
 ENV_PREFIX = "LEXORA_"
 
 load_dotenv(ROOT / ".env")
