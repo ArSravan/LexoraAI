@@ -6,3 +6,4 @@ __pycache__/
 storage/
 .idea/
 .vscode/
+evaluation/results/gen_cache.jsonl

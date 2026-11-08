@@ -24,7 +24,9 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 - [x] SQLite store, background indexing jobs with progress, FastAPI backend (upload validation, streaming answers,
       evidence page images), Streamlit UI, one-command start (`python run.py`, Makefile)
 - [ ] Docker: `Dockerfile` and `docker-compose.yml` are written but NOT yet built or tested
-- [ ] Evaluation and tests
+- [x] Evaluation: validated held-out and dev question sets, retrieval and answer metrics, cached resumable runs,
+      human grading, threshold calibration on the dev set, sample-document downloader
+- [ ] Report, architecture diagram and presentation
 
 This list is updated as each part is actually committed.
 
@@ -120,3 +122,52 @@ or `make run`. `python main.py` starts only the API (interactive docs at http://
 | `POST /api/cases/{id}/ask`, `/ask/stream` | answer (complete JSON, or newline-delimited events) |
 
 Docker (`docker compose up --build`) is written but has not been built or run yet.
+
+## Project layout
+
+The project folder is named `LexoraAI` and IS the Python package: `config.py`, `api/`, `services/`, `retrieval/` ...
+sit next to `app.py` and `main.py`, and the folder has an `__init__.py`. Code imports it as `LexoraAI.config` etc. For
+that to work Python needs the folder's parent on its path; `_bootstrap.py` (imported first by `main.py`, `app.py`,
+`scripts/` and `evaluation/`) arranges it, so no `PYTHONPATH` setting is needed. Run the scripts from the project folder
+with `python -m scripts.<name>` / `python -m evaluation.<name>`. `storage/` (uploaded files, indexes, database) and `.env`
+live inside the project folder.
+
+## Evaluation
+
+```bash
+python -m scripts.download_sample_docs                         # GDPR, ePrivacy Directive, Data Act -> sample_docs/
+python -m evaluation.calibrate sample_docs/*.pdf --write-env     # thresholds from the DEV set -> .env
+python -m evaluation.evaluate sample_docs/*.pdf --retrieval-only # about 1 minute, no LLM
+python -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybrid --export-grading
+```
+
+* **Provenance.** Both question sets were written for the earlier private prototype of this project and are reused here unchanged; the labels are re-checked against the PDFs by the tests below.
+* **Held-out set** `evaluation/dataset.json`: 15 questions (6 factual, 5 multi-hop, 4 unanswerable), each with an
+  expected answer, key facts and the labelled evidence (document, page, clause, a snippet). `tests/test_dataset.py` proves
+  every snippet is on its labelled page. **Dev set** `evaluation/calibration_set.json`: 14 different questions used ONLY by
+  `evaluation.calibrate`; a test checks that the two sets do not overlap.
+* **Mandatory comparisons**: dense vs hybrid retrieval (`recall@k`, `full@k`, `precision@5`, MRR, latency) and
+  no-retrieval vs retrieval-enabled answers (key-fact correctness, citations verified, citation precision, abstention
+  accuracy, false-abstention rate, latency, tokens). Fixed seed 42.
+* LLM answers take about 80 s each on a CPU. Each one is cached in `evaluation/results/gen_cache.jsonl` (not committed)
+  as soon as it exists, so an interrupted run resumes; changing any setting that affects answers invalidates the cache.
+* **Human grading.** The "answer correct" number from the program is an automatic key-fact PROXY: it misses paraphrases and
+  cannot judge a refusal. `--export-grading` writes `evaluation/results/manual_grades.csv`; read each answer, enter 1 / 0.5 / 0
+  (scale in the file `evaluation/grading.py`), then run the same command with `--apply-grades <file> --grader "<your name>"`
+  (answers come from the cache, the model is not asked again). The report names who graded and flags incomplete grading.
+* Outputs in `evaluation/results/`: `summary.md` (tables for this README), `summary.json`, `retrieval_by_question.csv`,
+  `generation_by_question.csv`, `meta.json` (models, library versions, thresholds, document hashes, git commit),
+  `calibration.json`.
+
+### Results
+
+_No full run has been recorded in this repository yet. After a run, paste `evaluation/results/summary.md` here._
+
+### Limits of the evaluation
+
+* 15 questions: one question moves a rate by 6-9 points, so differences below about 10 points are noise.
+* The dev set has 14 questions, so the calibrated thresholds are approximate.
+* The automatic correctness proxy is not a human judgement; report the manual grades, and say who graded.
+* Query decomposition was added after looking at multi-hop failures of a similar prototype; its gain on this set is
+  therefore optimistic.
+* The citation validator checks lexical and numeric support, not logical entailment.

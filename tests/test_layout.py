@@ -75,3 +75,11 @@ def test_scripts_and_the_api_start_from_a_flat_folder_without_pythonpath(tmp_pat
     assert r.returncode == 0 and r.stdout.strip() == "Lexora AI API", r.stderr[-500:]
     r = run_in(flat, "-c", "import _bootstrap; from LexoraAI.config import ROOT; print(ROOT)")
     assert r.returncode == 0 and Path(r.stdout.strip()).resolve() == flat.resolve(), r.stderr[-500:]
+
+
+def test_the_readme_documents_the_layout_and_the_evaluation_commands():
+    readme = (config.ROOT / "README.md").read_text(encoding="utf-8")
+    for needle in ("python -m evaluation.evaluate", "python -m evaluation.calibrate", "--apply-grades", "--export-grading",
+                   "python -m scripts.download_sample_docs", "_bootstrap.py", "gen_cache.jsonl"):
+        assert needle in readme, needle
+    assert "evaluation/results/gen_cache.jsonl" in (config.ROOT / ".gitignore").read_text()
