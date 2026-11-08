@@ -26,6 +26,7 @@ from statistics import mean
 from typing import Callable
 
 from config import ROOT, get_settings
+from evaluation import grading
 from evaluation.dataset import EVAL_DIR, TEST_SET, EvalQuestion, load_dataset
 from evaluation.metrics import (abstention_stats, aggregate, answer_correct_proxy, citation_counts,
                                          citation_precision)
@@ -168,7 +169,7 @@ def _fmt(v) -> str:
     return "-" if v is None else (f"{v:.2f}" if isinstance(v, float) else str(v))
 
 
-def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: dict) -> str:
+def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: dict, manual: dict | None = None) -> str:
     out = [f"Run {meta['date']} - model `{meta['ollama_model']}`, seed {meta['seed']}, "
            f"{meta['n_questions']} held-out questions ({meta['n_answerable']} answerable).", ""]
     if retrieval:
@@ -198,6 +199,21 @@ def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: 
         out += [f"| {label} | " + " | ".join(_fmt(generation[n].get(key)) for n in names) + " |" for label, key in rows]
         out += ["", "The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. "
                 "It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.", ""]
+    if manual:
+        names = list(manual["configs"])
+        rows = [("Answers graded", None), ("Answerable: mean score (1 / 0.5 / 0)", "answerable_mean_score"),
+                ("Answerable: strictly correct (grade 1)", "answerable_strictly_correct"),
+                ("Unanswerable: handled correctly", "unanswerable_handled_correctly"),
+                ("All questions: behaviour correct", "behaviour_correct_all")]
+        out += ["### Manual grades", "", f"Graded by: **{manual['grader']}** (file `{manual['file']}`). Scale: {manual['scale']}.", "",
+                "| | " + " | ".join(names) + " |", "|---|" + "---|" * len(names)]
+        for label, key in rows:
+            cells = [f"{manual['configs'][n]['n_graded']} / {manual['configs'][n]['n_total']}" if key is None
+                     else _fmt(manual["configs"][n][key]) for n in names]
+            out.append(f"| {label} | " + " | ".join(cells) + " |")
+        if any(c["n_graded"] < c["n_total"] for c in manual["configs"].values()):
+            out += ["", "Grading is INCOMPLETE: the manual numbers cover only the graded answers."]
+        out.append("")
     return "\n".join(out)
 
 
@@ -244,6 +260,10 @@ def main(argv: list[str] | None = None, service=None) -> int:
     ap.add_argument("--gen-configs", nargs="+", choices=list(GEN_CONFIGS), default=["no_retrieval", "hybrid"])
     ap.add_argument("--limit", type=int, help="only the first N questions (for a quick trial)")
     ap.add_argument("--fresh", action="store_true", help="ignore cached answers")
+    ap.add_argument("--export-grading", nargs="?", const="", metavar="CSV",
+                    help="write a sheet to grade the answers by hand (default: <out>/manual_grades.csv)")
+    ap.add_argument("--apply-grades", type=Path, metavar="CSV", help="add the manual grades from this sheet to the report")
+    ap.add_argument("--grader", default="unspecified", help="who graded (stated in the report)")
     args = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -267,11 +287,19 @@ def main(argv: list[str] | None = None, service=None) -> int:
                               GenCache(out / "gen_cache.jsonl"), args.fresh, log)
         write_csv(out / "generation_by_question.csv", rows)
         summary["generation"] = summarize_generation(rows)
+        if args.export_grading is not None:
+            sheet = Path(args.export_grading) if args.export_grading else out / "manual_grades.csv"
+            n = grading.export_template(rows, {q.id: q.expected_answer for q in questions},
+                                        {q.id: q.question for q in questions}, sheet)
+            log(f"grading sheet with {n} answers written to {sheet}")
+        if args.apply_grades:
+            summary["manual"] = {"grader": args.grader, "file": args.apply_grades.name, "scale": grading.SCALE,
+                                 "configs": grading.summarize_grades(rows, grading.load_grades(args.apply_grades))}
 
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     (out / "meta.json").write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
-    report = markdown_report(meta, retrieval, by_category, summary["generation"])
+    report = markdown_report(meta, retrieval, by_category, summary["generation"], summary.get("manual"))
     (out / "summary.md").write_text(report, encoding="utf-8")
     print(report)
     return 0

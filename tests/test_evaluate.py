@@ -175,3 +175,100 @@ def test_an_invalid_dataset_stops_the_run_before_anything_is_computed(env, tmp_p
     with pytest.raises(Exception, match="key_facts"):
         ev.main([*env["pdfs"], "--dataset", str(bad), "--out", str(env["out"]), "--retrieval-only"])
     assert not env["out"].exists()
+
+
+# ------------------------------------------------------------------------------ human grading
+from evaluation import grading  # noqa: E402
+
+ROWS = [{"id": "F1", "config": "hybrid", "category": "factual", "answerable": True, "answer": "A", "abstained": False},
+        {"id": "F2", "config": "hybrid", "category": "factual", "answerable": True, "answer": "B", "abstained": False},
+        {"id": "U1", "config": "hybrid", "category": "unanswerable", "answerable": False, "answer": "INSUFFICIENT", "abstained": True},
+        {"id": "F1", "config": "no_retrieval", "category": "factual", "answerable": True, "answer": "C", "abstained": False},
+        {"id": "U1", "config": "no_retrieval", "category": "unanswerable", "answerable": False, "answer": "D", "abstained": False}]
+EXPECTED = {"F1": "e1", "F2": "e2", "U1": "e3"}
+TEXT = {"F1": "q1?", "F2": "q2?", "U1": "q3?"}
+
+
+def test_the_grading_sheet_has_one_row_per_answer_and_never_loses_grades(tmp_path):
+    sheet = tmp_path / "g.csv"
+    assert grading.export_template(ROWS, EXPECTED, TEXT, sheet) == 5
+    rows = list(csv.DictReader(open(sheet, encoding="utf-8")))
+    assert [r["grade"] for r in rows] == [""] * 5 and rows[0]["question"] == "q1?" and rows[0]["expected_answer"] == "e1"
+    rows[1]["grade"], rows[1]["notes"] = "0.5", "missed the second tier"
+    with open(sheet, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=grading.FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+    grading.export_template(ROWS, EXPECTED, TEXT, sheet)                      # exporting again keeps what was graded
+    again = list(csv.DictReader(open(sheet, encoding="utf-8")))
+    assert again[1]["grade"] == "0.5" and again[1]["notes"] == "missed the second tier" and again[0]["grade"] == ""
+
+
+def write_grades(path, values):
+    grading.export_template(ROWS, EXPECTED, TEXT, path)
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    for r, v in zip(rows, values):
+        r["grade"] = v
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=grading.FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+
+
+def test_grades_are_parsed_and_invalid_ones_are_reported_with_their_line(tmp_path):
+    sheet = tmp_path / "g.csv"
+    write_grades(sheet, ["1", "0,5", "", "0", "1"])
+    g = grading.load_grades(sheet)
+    assert g == {("F1", "hybrid"): 1.0, ("F2", "hybrid"): 0.5, ("U1", "hybrid"): None, ("F1", "no_retrieval"): 0.0, ("U1", "no_retrieval"): 1.0}
+    write_grades(sheet, ["1", "good", "2", "0", "1"])
+    with pytest.raises(ValueError) as e:
+        grading.load_grades(sheet)
+    assert "line 3 (F2, hybrid)" in str(e.value) and "line 4 (U1, hybrid)" in str(e.value) and "line 2" not in str(e.value)
+
+
+def test_manual_metrics(tmp_path):
+    sheet = tmp_path / "g.csv"
+    write_grades(sheet, ["1", "0.5", "1", "0", "0"])
+    s = grading.summarize_grades(ROWS, grading.load_grades(sheet))
+    assert s["hybrid"] == {"n_graded": 3, "n_total": 3, "answerable_mean_score": 0.75, "answerable_strictly_correct": 0.5,
+                           "unanswerable_handled_correctly": 1.0, "behaviour_correct_all": 0.6667}
+    assert s["no_retrieval"]["answerable_mean_score"] == 0.0 and s["no_retrieval"]["unanswerable_handled_correctly"] == 0.0
+    write_grades(sheet, ["1", "", "", "", ""])
+    part = grading.summarize_grades(ROWS, grading.load_grades(sheet))
+    assert part["hybrid"]["n_graded"] == 1 and part["hybrid"]["unanswerable_handled_correctly"] is None and part["no_retrieval"]["n_graded"] == 0
+    assert part["no_retrieval"]["behaviour_correct_all"] is None
+
+
+def test_the_command_exports_a_sheet_and_later_adds_the_graders_numbers_without_asking_the_model_again(env):
+    run(env, "--gen-configs", "no_retrieval", "hybrid", "--export-grading")
+    sheet = env["out"] / "manual_grades.csv"
+    rows = list(csv.DictReader(open(sheet, encoding="utf-8")))
+    assert len(rows) == 6 and all(r["grade"] == "" for r in rows)
+    for r in rows:                                                       # the "human" grades the answers
+        r["grade"] = "1" if r["config"] == "hybrid" else "0"
+    with open(sheet, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=grading.FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+    calls = len(env["llm"].calls)
+    run(env, "--gen-configs", "no_retrieval", "hybrid", "--apply-grades", str(sheet), "--grader", "A. Student")
+    assert len(env["llm"].calls) == calls                                # everything came from the cache
+    manual = json.loads((env["out"] / "summary.json").read_text())["manual"]
+    assert manual["grader"] == "A. Student" and manual["configs"]["hybrid"]["answerable_strictly_correct"] == 1.0
+    assert manual["configs"]["no_retrieval"]["behaviour_correct_all"] == 0.0
+    report = (env["out"] / "summary.md").read_text()
+    assert "### Manual grades" in report and "Graded by: **A. Student**" in report and "INCOMPLETE" not in report
+
+
+def test_an_incomplete_grading_sheet_is_flagged_in_the_report(env):
+    run(env, "--gen-configs", "hybrid", "--export-grading")
+    sheet = env["out"] / "manual_grades.csv"
+    rows = list(csv.DictReader(open(sheet, encoding="utf-8")))
+    rows[0]["grade"] = "1"
+    with open(sheet, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=grading.FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+    run(env, "--gen-configs", "hybrid", "--apply-grades", str(sheet))
+    report = (env["out"] / "summary.md").read_text()
+    assert "1 / 3" in report and "Grading is INCOMPLETE" in report and "Graded by: **unspecified**" in report
