@@ -1,0 +1,295 @@
+{
+ "meta": {
+  "bundle": [
+   "GDPR_Regulation_2016_679.pdf",
+   "ePrivacy_Directive_2002_58.pdf",
+   "Data_Act_2023_2854.pdf"
+  ],
+  "source": "EUR-Lex via publications.europa.eu (public EU legislation)",
+  "note": "Held-out: never used for indexing or threshold calibration."
+ },
+ "questions": [
+  {
+   "id": "F1",
+   "category": "factual",
+   "answerable": true,
+   "question": "Within what time limit must a controller notify a personal data breach to the supervisory authority?",
+   "expected_answer": "Without undue delay and, where feasible, not later than 72 hours after becoming aware of it (Art. 33(1)).",
+   "key_facts": [
+    "72 hours"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 52,
+     "clause": "33(1)",
+     "snippet": "not later than 72 hours after having become aware of it"
+    }
+   ]
+  },
+  {
+   "id": "F2",
+   "category": "factual",
+   "answerable": true,
+   "question": "What is the minimum age at which a child can give valid consent for information society services under the GDPR, and may Member States lower it?",
+   "expected_answer": "16 years; Member States may provide a lower age, but not below 13 years (Art. 8(1)).",
+   "key_facts": [
+    "16",
+    "13"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 37,
+     "clause": "8(1)",
+     "snippet": "not below 13 years"
+    }
+   ]
+  },
+  {
+   "id": "F3",
+   "category": "factual",
+   "answerable": true,
+   "question": "In which cases must a controller or processor designate a data protection officer?",
+   "expected_answer": "Public authority/body (except courts); core activities requiring regular and systematic large-scale monitoring; large-scale processing of special categories or criminal data (Art. 37(1)).",
+   "key_facts": [
+    "public authority",
+    "monitoring",
+    "special categories"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 55,
+     "clause": "37(1)",
+     "snippet": "the processing is carried out by a public authority or body"
+    }
+   ]
+  },
+  {
+   "id": "F4",
+   "category": "factual",
+   "answerable": true,
+   "question": "How long does a controller have to respond to a data subject's request under Articles 15 to 22, and can this period be extended?",
+   "expected_answer": "Without undue delay and within one month of receipt; extendable by two further months where necessary (Art. 12(3)).",
+   "key_facts": [
+    "one month",
+    "two further months"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 40,
+     "clause": "12(3)",
+     "snippet": "extended by two further months"
+    }
+   ]
+  },
+  {
+   "id": "F5",
+   "category": "factual",
+   "answerable": true,
+   "question": "What must a provider of a publicly available electronic communications service do to safeguard the security of its services under the ePrivacy Directive?",
+   "expected_answer": "Take appropriate technical and organisational measures, if necessary together with the network provider (Art. 4(1) Directive 2002/58/EC).",
+   "key_facts": [
+    "technical and organisational measures"
+   ],
+   "expected_evidence": [
+    {
+     "document": "ePrivacy_Directive_2002_58.pdf",
+     "page": 7,
+     "clause": "4(1)",
+     "snippet": "appropriate technical and organisa"
+    }
+   ]
+  },
+  {
+   "id": "F6",
+   "category": "factual",
+   "answerable": true,
+   "question": "What is the maximum notice period for initiating the switching process that a contract with a provider of data processing services may require under the Data Act?",
+   "expected_answer": "A maximum notice period for initiation of switching which shall not exceed two months (Art. 25(2)(d)).",
+   "key_facts": [
+    "two months"
+   ],
+   "expected_evidence": [
+    {
+     "document": "Data_Act_2023_2854.pdf",
+     "page": 55,
+     "clause": "25(2)",
+     "snippet": "shall not exceed two months"
+    }
+   ]
+  },
+  {
+   "id": "M1",
+   "category": "multihop",
+   "answerable": true,
+   "question": "Under the GDPR, what is the maximum fine a company can receive, and which kinds of violations trigger the higher fine?",
+   "expected_answer": "Up to EUR 20 million or 4% of worldwide annual turnover (whichever is higher) for infringements of basic processing principles/consent, data subject rights, third-country transfers etc. (Art. 83(5)); the lower tier is EUR 10 million / 2% (Art. 83(4)).",
+   "key_facts": [
+    "20 000 000",
+    "4 %",
+    "basic principles",
+    "data subjects' rights"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 82,
+     "clause": "83(4)",
+     "snippet": "10 000 000 EUR"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 83,
+     "clause": "83(5)",
+     "snippet": "20 000 000 EUR"
+    }
+   ]
+  },
+  {
+   "id": "M2",
+   "category": "multihop",
+   "answerable": true,
+   "question": "When processing relies on consent, what must the controller be able to demonstrate, and how easy must it be for the data subject to withdraw consent?",
+   "expected_answer": "The controller must be able to demonstrate that the data subject consented (Art. 7(1)); withdrawing must be as easy as giving consent (Art. 7(3)).",
+   "key_facts": [
+    "demonstrate",
+    "as easy"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 37,
+     "clause": "7(1)",
+     "snippet": "able to demonstrate that the data subject has consented"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 37,
+     "clause": "7(3)",
+     "snippet": "right to withdraw his or her consent at any time"
+    }
+   ]
+  },
+  {
+   "id": "M3",
+   "category": "multihop",
+   "answerable": true,
+   "question": "Which article of the ePrivacy Directive governs storing information on a user's terminal equipment, and which GDPR article sets the conditions for consent?",
+   "expected_answer": "ePrivacy Directive Article 5(3) (storage/access to terminal equipment only with clear information and the right to refuse); GDPR Article 7 (conditions for consent).",
+   "key_facts": [
+    "5(3)",
+    "Article 7"
+   ],
+   "expected_evidence": [
+    {
+     "document": "ePrivacy_Directive_2002_58.pdf",
+     "page": 8,
+     "clause": "5(3)",
+     "snippet": "terminal equipment of a subscriber or user"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 37,
+     "clause": "7",
+     "snippet": "conditions for consent"
+    }
+   ]
+  },
+  {
+   "id": "M4",
+   "category": "multihop",
+   "answerable": true,
+   "question": "What must a controller do about a personal data breach towards the supervisory authority and towards the affected individuals, and when is communication to individuals not required?",
+   "expected_answer": "Notify the authority within 72 hours (Art. 33); communicate to data subjects without undue delay when there is a high risk (Art. 34(1)); not required if e.g. data were encrypted, high risk is no longer likely, or it would involve disproportionate effort (Art. 34(3)).",
+   "key_facts": [
+    "72 hours",
+    "high risk",
+    "not be required"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 52,
+     "clause": "33(1)",
+     "snippet": "72 hours"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 52,
+     "clause": "34(1)",
+     "snippet": "communicate the personal data breach to the data subject"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 53,
+     "clause": "34(3)",
+     "snippet": "shall not be required if any of the following conditions are met"
+    }
+   ]
+  },
+  {
+   "id": "M5",
+   "category": "multihop",
+   "answerable": true,
+   "question": "What happens if the Data Act conflicts with Union data protection law, and when is the processing of personal data lawful under the GDPR?",
+   "expected_answer": "In a conflict, the Union or national data protection law prevails (Data Act Art. 1(5)); processing is lawful only if at least one of the Art. 6(1) GDPR legal bases applies.",
+   "key_facts": [
+    "prevail",
+    "at least one"
+   ],
+   "expected_evidence": [
+    {
+     "document": "Data_Act_2023_2854.pdf",
+     "page": 33,
+     "clause": "1(5)",
+     "snippet": "shall prevail"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 36,
+     "clause": "6(1)",
+     "snippet": "at least one of the following applies"
+    }
+   ]
+  },
+  {
+   "id": "U1",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What is the governing law of the subcontractor agreement?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: no subcontractor agreement exists in the uploaded documents.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "U2",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What is the maximum fine for very large online platforms under the Digital Services Act?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: the Digital Services Act is not part of the document bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "U3",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What notice period must an employer give to terminate an employee's employment contract according to these documents?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: the documents contain no employment-law provisions.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "U4",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What did the Court of Justice rule in the Schrems II judgment about standard contractual clauses?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: case law is not part of the document bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  }
+ ]
+}

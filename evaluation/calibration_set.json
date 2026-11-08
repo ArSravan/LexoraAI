@@ -1,0 +1,224 @@
+{
+ "meta": {
+  "bundle": [
+   "GDPR_Regulation_2016_679.pdf",
+   "ePrivacy_Directive_2002_58.pdf",
+   "Data_Act_2023_2854.pdf"
+  ],
+  "source": "EUR-Lex via publications.europa.eu (public EU legislation)",
+  "note": "Dev set used ONLY to calibrate abstention thresholds."
+ },
+ "questions": [
+  {
+   "id": "D1",
+   "category": "factual",
+   "answerable": true,
+   "question": "How long may personal data be kept in a form that permits identification of data subjects?",
+   "expected_answer": "No longer than necessary for the purposes of processing (Art. 5(1)(e)).",
+   "key_facts": [
+    "no longer than is necessary"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 36,
+     "clause": "5(1)",
+     "snippet": "no longer than is necessary"
+    }
+   ]
+  },
+  {
+   "id": "D2",
+   "category": "factual",
+   "answerable": true,
+   "question": "On which grounds does a data subject have the right to obtain erasure of personal data?",
+   "expected_answer": "Art. 17(1): no longer necessary, consent withdrawn, objection, unlawful processing, legal obligation, child's data.",
+   "key_facts": [
+    "no longer necessary"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 43,
+     "clause": "17(1)",
+     "snippet": "right to obtain from the controller the erasure of personal data"
+    }
+   ]
+  },
+  {
+   "id": "D3",
+   "category": "factual",
+   "answerable": true,
+   "question": "What may a processor not do without prior authorisation of the controller?",
+   "expected_answer": "Engage another processor without prior specific or general written authorisation (Art. 28(2)).",
+   "key_facts": [
+    "another processor"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 49,
+     "clause": "28(2)",
+     "snippet": "shall not engage another processor without prior specific or general written authorisation"
+    }
+   ]
+  },
+  {
+   "id": "D4",
+   "category": "factual",
+   "answerable": true,
+   "question": "Which traffic data may be processed for subscriber billing under the ePrivacy Directive?",
+   "expected_answer": "Traffic data necessary for subscriber billing and interconnection payments (Art. 6(2)).",
+   "key_facts": [
+    "billing"
+   ],
+   "expected_evidence": [
+    {
+     "document": "ePrivacy_Directive_2002_58.pdf",
+     "page": 8,
+     "clause": "6(2)",
+     "snippet": "traffic data necessary for the purposes of subscriber billing"
+    }
+   ]
+  },
+  {
+   "id": "D5",
+   "category": "factual",
+   "answerable": true,
+   "question": "What must data holders do when data cannot be directly accessed by the user from the connected product?",
+   "expected_answer": "Make the readily available data available to the user without undue delay (Data Act Art. 4(1)).",
+   "key_facts": [
+    "without undue delay"
+   ],
+   "expected_evidence": [
+    {
+     "document": "Data_Act_2023_2854.pdf",
+     "page": 38,
+     "clause": "4(1)",
+     "snippet": "where data cannot be directly accessed by the user from the connected product"
+    }
+   ]
+  },
+  {
+   "id": "D6",
+   "category": "factual",
+   "answerable": true,
+   "question": "On what basis may a transfer of personal data to a third country take place without further authorisation?",
+   "expected_answer": "Where the Commission has decided that the third country ensures an adequate level of protection (Art. 45(1)).",
+   "key_facts": [
+    "adequate"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 61,
+     "clause": "45(1)",
+     "snippet": "a transfer of personal data to a third country or an international organisation may take place where the commission has decided"
+    }
+   ]
+  },
+  {
+   "id": "DM1",
+   "category": "multihop",
+   "answerable": true,
+   "question": "Which principles must personal data processing follow, and what must the controller be able to demonstrate about them?",
+   "expected_answer": "Art. 5(1) lists the principles; Art. 5(2): the controller is responsible for and must be able to demonstrate compliance (accountability).",
+   "key_facts": [
+    "demonstrate"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 36,
+     "clause": "5(1)",
+     "snippet": "no longer than is necessary"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 36,
+     "clause": "5(2)",
+     "snippet": "able to demonstrate compliance with, paragraph 1"
+    }
+   ]
+  },
+  {
+   "id": "DM2",
+   "category": "multihop",
+   "answerable": true,
+   "question": "What must a controller check before using a processor, and what must the contract with the processor provide?",
+   "expected_answer": "Use only processors providing sufficient guarantees (Art. 28(1)); processing is governed by a binding contract (Art. 28(3)).",
+   "key_facts": [
+    "sufficient guarantees",
+    "contract"
+   ],
+   "expected_evidence": [
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 49,
+     "clause": "28(1)",
+     "snippet": "sufficient guarantees"
+    },
+    {
+     "document": "GDPR_Regulation_2016_679.pdf",
+     "page": 49,
+     "clause": "28(3)",
+     "snippet": "processing by a processor shall be governed by a contract"
+    }
+   ]
+  },
+  {
+   "id": "DU1",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What is the maximum fine for violating the NIS2 Directive?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: NIS2 is not in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "DU2",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What sanctions does the AI Act impose for prohibited AI practices?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: the AI Act is not in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "DU3",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "How long must companies in France keep accounting records for tax purposes?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: no French tax law in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "DU4",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What is the minimum share capital for a limited liability company under German law?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: German company law is not in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "DU5",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "How much compensation did the Irish Data Protection Commission order Meta to pay?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: enforcement decisions are not in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  },
+  {
+   "id": "DU6",
+   "category": "unanswerable",
+   "answerable": false,
+   "question": "What are the rules for patent protection duration in the European Union?",
+   "expected_answer": "INSUFFICIENT EVIDENCE: patent law is not in the bundle.",
+   "key_facts": [],
+   "expected_evidence": []
+  }
+ ]
+}
