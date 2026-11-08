@@ -29,6 +29,7 @@ from evaluation.dataset import EVAL_DIR, TEST_SET, EvalQuestion, load_dataset
 from evaluation.metrics import (abstention_stats, aggregate, answer_correct_proxy, citation_counts,
                                          citation_precision)
 from generation.answer_generator import AnswerService
+from services import indexer
 from scripts.eval_retrieval import evaluate as evaluate_retrieval
 from scripts.search_pdf import ensure_indexed
 
@@ -66,9 +67,13 @@ class GenCache:
 
     @staticmethod
     def key(case_id: str, config: str, question: str) -> str:
-        payload = json.dumps({"case": case_id, "config": config, "q": question, "settings": settings_signature()},
-                             sort_keys=True, default=str)
-        return hashlib.sha1(payload.encode()).hexdigest()
+        """Answers that use retrieval depend on the index, so the key includes its fingerprint: indexing again makes the
+        old answers unusable. The no-retrieval baseline never looks at the index, so its key (and the grades it earned)
+        stays valid."""
+        payload = {"case": case_id, "config": config, "q": question, "settings": settings_signature()}
+        if config != "no_retrieval":
+            payload["index"] = indexer.index_fingerprint(case_id)
+        return hashlib.sha1(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
     def put(self, key: str, row: dict) -> None:
         self.rows[key] = row
@@ -84,6 +89,15 @@ def generation_row(q: EvalQuestion, config: str, res: dict) -> dict:
     verified, emitted = citation_counts(res["claims"])
     gold, _ = citation_precision(res["claims"], q.evidence_dicts())
     t, tok = res["timings"], res.get("tokens") or {}
+    abstention = res.get("abstention") or {}
+    reasons = abstention.get("reasons", [])
+    if res["error"]:
+        stage = "error"
+    elif res["abstained"]:                  # who said no? the evidence gate, the model itself, or the citation verifier
+        stage = ("verifier" if any("could not be grounded" in r for r in reasons) else
+                 "model" if any("do not answer the question" in r for r in reasons) else "gate")
+    else:
+        stage = ""
     return {
         "id": q.id, "category": q.category, "config": config, "answerable": q.answerable,
         "abstained": res["abstained"], "confidence": res["confidence"], "answer": res["answer"].strip(),
@@ -92,7 +106,9 @@ def generation_row(q: EvalQuestion, config: str, res: dict) -> dict:
         "retrieval_s": t.get("retrieval_s", 0.0), "rerank_s": t.get("rerank_s", 0.0),
         "generation_s": t.get("generation_s", 0.0), "total_s": t.get("total_s", 0.0),
         "prompt_tokens": tok.get("prompt", 0), "completion_tokens": tok.get("completion", 0),
-        "retries": len(res["retry_log"]), "error": res["error"],
+        "retries": len(res["retry_log"]), "error": res["error"], "refusal_stage": stage,
+        "refusal_reason": " | ".join(reasons)[:300], "verifier_note": (res["retry_log"][0] if res["retry_log"] else "")[:300],
+        "rejected_draft": (abstention.get("draft_rejected") or "")[:200],
     }
 
 
@@ -106,13 +122,17 @@ def run_generation(case_id: str, questions: list[EvalQuestion], configs: list[st
             n += 1
             key = GenCache.key(case_id, config, q.question)
             row = None if fresh else cache.rows.get(key)
+            if row is not None and row["error"]:                  # a failure is not an answer: ask again
+                row = None
             if row is None:
                 res = service.answer(case_id, q.question, opts.get("mode"), None, opts.get("rerank"),
                                      opts["use_retrieval"]).model_dump()
                 row = generation_row(q, config, res)
-                cache.put(key, row)
-                log(f"[{n}/{total}] {config:<12} {q.id:<4} {row['total_s']:>6.1f}s  "
-                    f"{'ABSTAINED' if row['abstained'] else 'answered'}")
+                if not row["error"]:
+                    cache.put(key, row)
+                outcome = f"ERROR: {row['error'][:60]}" if row["error"] else (
+                    f"ABSTAINED ({row['refusal_stage']})" if row["abstained"] else "answered")
+                log(f"[{n}/{total}] {config:<12} {q.id:<4} {row['total_s']:>6.1f}s  {outcome}")
             else:
                 log(f"[{n}/{total}] {config:<12} {q.id:<4} (cached)")
             rows.append(row)
@@ -140,6 +160,8 @@ def summarize_generation(rows: list[dict]) -> dict[str, dict]:
             "mean_prompt_tokens": round(mean(r["prompt_tokens"] for r in rs)),
             "mean_completion_tokens": round(mean(r["completion_tokens"] for r in rs)),
             "n_errors": sum(1 for r in rs if r["error"]),
+            "answerable_refusals_by_stage": {st: sum(1 for r in ans if r["refusal_stage"] == st)
+                                             for st in ("gate", "model", "verifier", "error")},
         }
     return out
 
@@ -195,6 +217,14 @@ def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: 
                 ("Answers that failed with an error", "n_errors")]
         out += ["### Generation", "", "| | " + " | ".join(names) + " |", "|---|" + "---|" * len(names)]
         out += [f"| {label} | " + " | ".join(_fmt(generation[n].get(key)) for n in names) + " |" for label, key in rows]
+        for name in names:
+            st = generation[name].get("answerable_refusals_by_stage") or {}
+            if st.get("verifier") or st.get("error"):
+                out += ["", f"**WARNING ({name}):** {st.get('verifier', 0)} answerable question(s) were refused AFTER the model "
+                        f"answered because no citation passed verification, and {st.get('error', 0)} failed with an error. "
+                        "That usually points to a problem (an out-of-date index, the wrong model, Ollama not running), not to "
+                        "a property of the system. Read `refusal_reason` and `verifier_note` in generation_by_question.csv "
+                        "before using these numbers."]
         out += ["", "The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. "
                 "It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.", ""]
     if manual:
@@ -209,6 +239,10 @@ def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: 
             cells = [f"{manual['configs'][n]['n_graded']} / {manual['configs'][n]['n_total']}" if key is None
                      else _fmt(manual["configs"][n][key]) for n in names]
             out.append(f"| {label} | " + " | ".join(cells) + " |")
+        if any(c["n_stale"] for c in manual["configs"].values()):
+            out += ["", "Some grades were IGNORED because the answer changed after it was graded: "
+                    + ", ".join(f"{n}: {c['n_stale']}" for n, c in manual["configs"].items() if c["n_stale"])
+                    + ". Grade those answers again (they are blank in a fresh --export-grading sheet)."]
         if any(c["n_graded"] < c["n_total"] for c in manual["configs"].values()):
             out += ["", "Grading is INCOMPLETE: the manual numbers cover only the graded answers."]
         out.append("")
@@ -287,9 +321,10 @@ def main(argv: list[str] | None = None, service=None) -> int:
         summary["generation"] = summarize_generation(rows)
         if args.export_grading is not None:
             sheet = Path(args.export_grading) if args.export_grading else out / "manual_grades.csv"
-            n = grading.export_template(rows, {q.id: q.expected_answer for q in questions},
-                                        {q.id: q.question for q in questions}, sheet)
-            log(f"grading sheet with {n} answers written to {sheet}")
+            n, kept, dropped = grading.export_template(rows, {q.id: q.expected_answer for q in questions},
+                                                       {q.id: q.question for q in questions}, sheet)
+            log(f"grading sheet with {n} answers written to {sheet}: {kept} earlier grades kept, "
+                f"{dropped} dropped because the answer changed")
         if args.apply_grades:
             summary["manual"] = {"grader": args.grader, "file": args.apply_grades.name, "scale": grading.SCALE,
                                  "configs": grading.summarize_grades(rows, grading.load_grades(args.apply_grades))}
