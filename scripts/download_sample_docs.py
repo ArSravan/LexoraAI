@@ -31,7 +31,7 @@ def download(files: dict[str, str], out: Path, timeout: float = 180) -> list[str
         if dest.exists() and dest.stat().st_size > MIN_BYTES:
             report.append(f"have {name}")
             continue
-        r = requests.get(url, headers={"Accept": "application/pdf", "Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+        r = requests.get(url, headers={"Accept": "application/pdf, */*;q=0.1", "Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
                          timeout=timeout)
         r.raise_for_status()
         if not r.content.startswith(b"%PDF"):

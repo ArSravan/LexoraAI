@@ -1,0 +1,218 @@
+{
+  "meta": {
+    "date": "2026-11-08 20:44:50 UTC",
+    "git_commit": "6a4fcfc",
+    "n_questions": 15,
+    "n_answerable": 11,
+    "dataset": "dataset.json",
+    "dataset_sha256": "7fdc02b84a9c2f45501c7d5e87153b8cfdd8deca6feffe5e078582833a33966c",
+    "documents": [
+      {
+        "name": "GDPR_Regulation_2016_679.pdf",
+        "sha256": "bd84e63f5b622b739a83389afc3b30d240f792bb88d8eb03a816c9a82b0c2499"
+      },
+      {
+        "name": "ePrivacy_Directive_2002_58.pdf",
+        "sha256": "081fa36ca2a4c7cb80d8eecae545568c7a65d74e7d98c6ad8c9060edf7c220ff"
+      },
+      {
+        "name": "Data_Act_2023_2854.pdf",
+        "sha256": "0d100d513136adfaa5655d77784d3af00f477b8588471cbb51dea7aff8687838"
+      }
+    ],
+    "python": "3.12.10",
+    "libraries": {
+      "torch": "2.15.0",
+      "sentence-transformers": "6.2.0",
+      "chromadb": "1.5.9",
+      "rank-bm25": "0.2.2",
+      "pymupdf": "2.1"
+    },
+    "ollama_model": "qwen3.5:9b",
+    "ollama_temperature": 0.1,
+    "ollama_num_ctx": 8192,
+    "ollama_num_predict": 1024,
+    "ollama_think": "off",
+    "seed": 42,
+    "final_top_k": 5,
+    "initial_top_k": 20,
+    "rrf_k": 60,
+    "query_decomposition": true,
+    "abstain_rerank_min": 2.5,
+    "abstain_coverage_min": 0.32,
+    "verify_retries": 1,
+    "quote_match_min": 0.85,
+    "chunk_max_chars": 1000,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "high_conf_rerank": 6.0,
+    "medium_conf_rerank": 2.5
+  },
+  "retrieval": {
+    "BM25 only": {
+      "recall@1": 0.5455,
+      "recall@3": 0.7273,
+      "recall@5": 0.8485,
+      "full@5": 0.7273,
+      "precision@5": 0.2727,
+      "mrr": 0.753,
+      "latency_ms": 20.2082
+    },
+    "Dense only": {
+      "recall@1": 0.3636,
+      "recall@3": 0.5455,
+      "recall@5": 0.5909,
+      "full@5": 0.4545,
+      "precision@5": 0.1818,
+      "mrr": 0.5076,
+      "latency_ms": 1019.4852
+    },
+    "Hybrid (BM25 + dense, RRF)": {
+      "recall@1": 0.5909,
+      "recall@3": 0.6364,
+      "recall@5": 0.8788,
+      "full@5": 0.7273,
+      "precision@5": 0.2727,
+      "mrr": 0.8182,
+      "latency_ms": 17.5717
+    },
+    "Hybrid + rerank": {
+      "recall@1": 0.5909,
+      "recall@3": 0.7576,
+      "recall@5": 0.8333,
+      "full@5": 0.7273,
+      "precision@5": 0.2727,
+      "mrr": 0.7576,
+      "latency_ms": 459.2521
+    },
+    "Hybrid + rerank + query decomposition": {
+      "recall@1": 0.5909,
+      "recall@3": 0.8485,
+      "recall@5": 0.8939,
+      "full@5": 0.8182,
+      "precision@5": 0.3091,
+      "mrr": 0.8182,
+      "latency_ms": 1165.6506
+    }
+  },
+  "by_category": {
+    "factual / BM25 only": {
+      "recall@1": 0.8333,
+      "recall@5": 1.0,
+      "full@5": 1.0
+    },
+    "multihop / BM25 only": {
+      "recall@1": 0.2,
+      "recall@5": 0.6667,
+      "full@5": 0.4
+    },
+    "factual / Dense only": {
+      "recall@1": 0.6667,
+      "recall@5": 0.8333,
+      "full@5": 0.8333
+    },
+    "multihop / Dense only": {
+      "recall@1": 0.0,
+      "recall@5": 0.3,
+      "full@5": 0.0
+    },
+    "factual / Hybrid (BM25 + dense, RRF)": {
+      "recall@1": 0.8333,
+      "recall@5": 1.0,
+      "full@5": 1.0
+    },
+    "multihop / Hybrid (BM25 + dense, RRF)": {
+      "recall@1": 0.3,
+      "recall@5": 0.7333,
+      "full@5": 0.4
+    },
+    "factual / Hybrid + rerank": {
+      "recall@1": 1.0,
+      "recall@5": 1.0,
+      "full@5": 1.0
+    },
+    "multihop / Hybrid + rerank": {
+      "recall@1": 0.1,
+      "recall@5": 0.6333,
+      "full@5": 0.4
+    },
+    "factual / Hybrid + rerank + query decomposition": {
+      "recall@1": 1.0,
+      "recall@5": 1.0,
+      "full@5": 1.0
+    },
+    "multihop / Hybrid + rerank + query decomposition": {
+      "recall@1": 0.1,
+      "recall@5": 0.7667,
+      "full@5": 0.6
+    }
+  },
+  "generation": {
+    "no_retrieval": {
+      "n": 15,
+      "n_answerable": 11,
+      "n_unanswerable": 4,
+      "answer_correct_proxy": 0.5455,
+      "answer_correct_proxy_by_category": {
+        "factual": 0.5,
+        "multihop": 0.6
+      },
+      "citations_verified_rate": null,
+      "citation_precision": null,
+      "abstention_accuracy": 0.7333,
+      "false_abstention_rate": 0.0,
+      "correct_abstention_rate": 0.0,
+      "mean_retrieval_s": 0.0,
+      "mean_generation_s": 16.05,
+      "mean_total_s": 16.1,
+      "mean_prompt_tokens": 75,
+      "mean_completion_tokens": 95,
+      "n_errors": 0
+    },
+    "hybrid": {
+      "n": 15,
+      "n_answerable": 11,
+      "n_unanswerable": 4,
+      "answer_correct_proxy": 0.0,
+      "answer_correct_proxy_by_category": {
+        "factual": 0.0,
+        "multihop": 0.0
+      },
+      "citations_verified_rate": null,
+      "citation_precision": null,
+      "abstention_accuracy": 0.2667,
+      "false_abstention_rate": 1.0,
+      "correct_abstention_rate": 1.0,
+      "mean_retrieval_s": 0.97,
+      "mean_generation_s": 128.79,
+      "mean_total_s": 129.81,
+      "mean_prompt_tokens": 2436,
+      "mean_completion_tokens": 838,
+      "n_errors": 0
+    }
+  },
+  "manual": {
+    "grader": "Sravan",
+    "file": "manual_grades.csv",
+    "scale": "answerable: 1 correct and complete, 0.5 partly correct, 0 wrong/ungrounded/unjustified refusal; unanswerable: 1 correctly says the documents do not contain it, 0 answers from outside knowledge",
+    "configs": {
+      "no_retrieval": {
+        "n_graded": 15,
+        "n_total": 15,
+        "answerable_mean_score": 0.7273,
+        "answerable_strictly_correct": 0.5455,
+        "unanswerable_handled_correctly": 0.5,
+        "behaviour_correct_all": 0.5333
+      },
+      "hybrid": {
+        "n_graded": 15,
+        "n_total": 15,
+        "answerable_mean_score": 0.0,
+        "answerable_strictly_correct": 0.0,
+        "unanswerable_handled_correctly": 1.0,
+        "behaviour_correct_all": 0.2667
+      }
+    }
+  }
+}

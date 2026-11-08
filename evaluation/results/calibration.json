@@ -1,0 +1,103 @@
+{
+  "abstain_rerank_min": 2.31,
+  "abstain_coverage_min": 0.34,
+  "dev_accuracy": 1.0,
+  "dev_false_abstention_rate": 0.0,
+  "dev_correct_abstention_rate": 1.0,
+  "n_dev": 14,
+  "n_answerable": 8,
+  "n_unanswerable": 6,
+  "equally_good_pairs": 5,
+  "current": {
+    "abstain_rerank_min": 2.5,
+    "abstain_coverage_min": 0.32,
+    "dev_accuracy": 1.0
+  },
+  "features": [
+    {
+      "id": "D1",
+      "answerable": true,
+      "top_score": 7.303,
+      "coverage": 1.0
+    },
+    {
+      "id": "D2",
+      "answerable": true,
+      "top_score": 8.979,
+      "coverage": 1.0
+    },
+    {
+      "id": "D3",
+      "answerable": true,
+      "top_score": 9.333,
+      "coverage": 1.0
+    },
+    {
+      "id": "D4",
+      "answerable": true,
+      "top_score": 8.611,
+      "coverage": 1.0
+    },
+    {
+      "id": "D5",
+      "answerable": true,
+      "top_score": 9.359,
+      "coverage": 1.0
+    },
+    {
+      "id": "D6",
+      "answerable": true,
+      "top_score": 8.778,
+      "coverage": 1.0
+    },
+    {
+      "id": "DM1",
+      "answerable": true,
+      "top_score": 7.18,
+      "coverage": 0.875
+    },
+    {
+      "id": "DM2",
+      "answerable": true,
+      "top_score": 4.263,
+      "coverage": 0.667
+    },
+    {
+      "id": "DU1",
+      "answerable": false,
+      "top_score": -1.969,
+      "coverage": 0.25
+    },
+    {
+      "id": "DU2",
+      "answerable": false,
+      "top_score": -6.68,
+      "coverage": 1.0
+    },
+    {
+      "id": "DU3",
+      "answerable": false,
+      "top_score": -7.068,
+      "coverage": 0.429
+    },
+    {
+      "id": "DU4",
+      "answerable": false,
+      "top_score": -10.683,
+      "coverage": 0.571
+    },
+    {
+      "id": "DU5",
+      "answerable": false,
+      "top_score": -5.673,
+      "coverage": 0.5
+    },
+    {
+      "id": "DU6",
+      "answerable": false,
+      "top_score": 0.354,
+      "coverage": 0.833
+    }
+  ],
+  "note": "Chosen on 14 dev questions only: one question moves the accuracy by 7 points, so treat the thresholds as approximate."
+}
