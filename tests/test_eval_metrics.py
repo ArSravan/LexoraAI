@@ -50,3 +50,51 @@ def test_eval_script_prints_a_row_per_configuration(eu_style_pdf, contract_pdf, 
     out = capsys.readouterr().out
     assert "answerable questions: 2" in out and "BM25 only" in out and "Hybrid + rerank + query decomposition" in out
     assert "missed at 5 - BM25 only: none" in out
+
+
+# ------------------------------------------------------------------------------ generation metrics
+from evaluation.metrics import (abstention_stats, answer_correct_proxy, citation_counts,  # noqa: E402
+                                         citation_precision, fact_present)
+
+
+@pytest.mark.parametrize("fact,answer,expected", [
+    ("72 hours", "Notify within 72 hours of becoming aware.", True),
+    ("20 000 000", "Fines up to EUR 20 million apply.", True),                       # quantities, not strings
+    ("20 000 000", "Fines up to EUR 10 million apply.", False),
+    ("4 %", "or 4% of annual turnover", True),
+    ("basic principles", "infringing the Basic Principles for processing", True),
+    ("data subjects' rights", "the rights of data subjects", True),                   # word set, stemmed, any order
+    ("data subjects' rights", "the rights of controllers", False),
+    ("Delaware", "The governing law is not stated.", False),
+])
+def test_key_facts_are_found_as_text_quantities_or_word_sets(fact, answer, expected):
+    assert fact_present(fact, answer) is expected
+
+
+def test_an_answer_is_correct_only_if_every_key_fact_is_present():
+    assert answer_correct_proxy(["72 hours", "supervisory authority"], "Within 72 hours to the supervisory authority.")
+    assert not answer_correct_proxy(["72 hours", "supervisory authority"], "Within 72 hours.")
+    assert not answer_correct_proxy([], "anything")
+
+
+def claim(*refs):
+    return {"claim": "c", "evidence": [{"status": s, "ref": {"document": d, "clause": cl}} for s, d, cl in refs]}
+
+
+def test_citation_counts_and_precision_against_the_labelled_evidence():
+    claims = [claim(("VERIFIED", "GDPR.pdf", "83(5)(a)"), ("VERIFIED", "GDPR.pdf", "Recital 148")),
+              claim(("PARTIAL", "GDPR.pdf", "83(4)"), ("VERIFIED", "Other.pdf", "83(5)"))]
+    expected = [{"document": "GDPR.pdf", "clause": "83(5)"}, {"document": "GDPR.pdf", "clause": "83(4)"}]
+    assert citation_counts(claims) == (3, 4)
+    assert citation_precision(claims, expected) == (2, 4)       # a sub-clause counts; a neighbour recital and a wrong document do not
+    assert citation_counts([]) == (0, 0) and citation_precision([], expected) == (0, 0)
+
+
+def test_abstention_statistics():
+    rows = [{"answerable": True, "abstained": False}, {"answerable": True, "abstained": True},
+            {"answerable": False, "abstained": True}, {"answerable": False, "abstained": True},
+            {"answerable": False, "abstained": False}]
+    s = abstention_stats(rows)
+    assert s == {"abstention_accuracy": 0.6, "false_abstention_rate": 0.5, "correct_abstention_rate": 0.6667}
+    assert abstention_stats([{"answerable": True, "abstained": False}])["correct_abstention_rate"] is None
+    assert abstention_stats([]) == {}
