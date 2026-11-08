@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 
-import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 from api.app import app  # noqa: F401  (uvicorn imports `main:app`)
 
 if __name__ == "__main__":

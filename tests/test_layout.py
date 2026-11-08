@@ -1,5 +1,6 @@
-"""LexoraAI must work whether the project folder CONTAINS the package or IS the package (flat layout)."""
+"""The project runs from ANY folder name, with plain module imports and no environment setup."""
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -7,57 +8,28 @@ from pathlib import Path
 
 import pytest
 
-import _bootstrap
 import config
 
+ROOT = config.ROOT
 SKIP = shutil.ignore_patterns(".git", ".venv", "venv", "storage", "__pycache__", ".pytest_cache", "*.pyc", "sample_docs")
 
 
-def test_nothing_changes_when_the_project_folder_contains_the_package(tmp_path, monkeypatch):
-    monkeypatch.setattr(sys, "path", list(sys.path))
-    before = list(sys.path)
-    assert _bootstrap.ensure_importable(tmp_path) is False and sys.path == before
+def test_the_project_root_is_found_and_storage_lives_inside_it():
+    assert (ROOT / "app.py").is_file() and (ROOT / "main.py").is_file() and (ROOT / "requirements.txt").is_file()
+    assert config.Settings().storage_dir == ROOT / "storage"          # storage/ and .env belong INSIDE the project
 
 
-def test_a_flat_project_folder_puts_its_parent_on_the_path_once(tmp_path, monkeypatch):
-    project = tmp_path / "LexoraAI"
-    project.mkdir()
-    (project / "__init__.py").write_text("")
-    monkeypatch.setattr(sys, "path", list(sys.path))
-    assert _bootstrap.ensure_importable(project) is True and sys.path[0] == str(tmp_path)
-    assert _bootstrap.ensure_importable(project) is False and sys.path.count(str(tmp_path)) == 1
-
-
-def test_a_flat_project_folder_with_the_wrong_name_is_explained(tmp_path):
-    project = tmp_path / "Lexora AI"
-    project.mkdir()
-    (project / "__init__.py").write_text("")
-    with pytest.raises(ImportError, match="Rename the folder to 'LexoraAI'"):
-        _bootstrap.ensure_importable(project)
-
-
-def test_the_project_root_is_found_in_either_layout():
-    root = config.ROOT
-    assert (root / "app.py").is_file() and (root / "main.py").is_file() and (root / "requirements.txt").is_file()
-    assert config.Settings().storage_dir == root / "storage"          # storage/ and .env belong INSIDE the project
-
-
-def flat_copy(tmp_path: Path) -> Path:
-    """The whole project laid out the flat way: a folder named LexoraAI whose modules sit next to app.py."""
-    dest = tmp_path / "LexoraAI"
-
-    def skip(directory, names):
-        ignored = set(SKIP(directory, names))
-        if Path(directory) == config.ROOT:
-            ignored.add("LexoraAI")                                  # a nested package is merged in below
-        return ignored
-
-    shutil.copytree(config.ROOT, dest, ignore=skip)
-    nested = config.ROOT / "LexoraAI"
-    if nested.is_dir():
-        shutil.copytree(nested, dest, ignore=SKIP, dirs_exist_ok=True)
-    (dest / "__init__.py").touch()
-    return dest
+def test_every_import_is_a_plain_module_import():
+    """`from config import ...`, not `from LexoraAI.config import ...`: the folder name must not matter."""
+    offenders = []
+    for py in ROOT.rglob("*.py"):
+        if any(part in (".git", ".venv", "venv", "storage", "__pycache__", "sample_docs") for part in py.relative_to(ROOT).parts):
+            continue
+        for n, line in enumerate(py.read_text(encoding="utf-8").splitlines(), 1):
+            if re.match(r"\s*(from|import)\s+(LexoraAI|_bootstrap)\b", line):
+                offenders.append(f"{py.relative_to(ROOT)}:{n}: {line.strip()}")
+    assert offenders == []
+    assert not (ROOT / "_bootstrap.py").exists() and not (ROOT / "__init__.py").exists()
 
 
 def run_in(folder: Path, *args: str) -> subprocess.CompletedProcess:
@@ -66,20 +38,24 @@ def run_in(folder: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, *args], cwd=folder, env=env, capture_output=True, text=True, timeout=120)
 
 
-def test_scripts_and_the_api_start_from_a_flat_folder_without_pythonpath(tmp_path):
-    flat = flat_copy(tmp_path)
-    assert not (flat / "LexoraAI").exists() and (flat / "config.py").is_file() and (flat / "app.py").is_file()
-    r = run_in(flat, "-m", "scripts.search_pdf", "--help")
+@pytest.mark.parametrize("folder_name", ["LexoraAI-main", "My Project Copy"])
+def test_scripts_and_the_api_start_from_a_folder_with_any_name(tmp_path, folder_name):
+    """A ZIP download is called LexoraAI-main; people also rename folders. None of it may matter."""
+    copy = tmp_path / folder_name
+    shutil.copytree(ROOT, copy, ignore=SKIP)
+    r = run_in(copy, "-m", "scripts.search_pdf", "--help")
     assert r.returncode == 0 and "usage" in r.stdout, r.stderr[-500:]
-    r = run_in(flat, "-c", "import main; print(main.app.title)")
+    r = run_in(copy, "-m", "evaluation.evaluate", "--help")
+    assert r.returncode == 0 and "usage" in r.stdout, r.stderr[-500:]
+    r = run_in(copy, "-c", "import main; print(main.app.title)")
     assert r.returncode == 0 and r.stdout.strip() == "Lexora AI API", r.stderr[-500:]
-    r = run_in(flat, "-c", "import _bootstrap; from LexoraAI.config import ROOT; print(ROOT)")
-    assert r.returncode == 0 and Path(r.stdout.strip()).resolve() == flat.resolve(), r.stderr[-500:]
+    r = run_in(copy, "-c", "from config import ROOT; print(ROOT)")
+    assert r.returncode == 0 and Path(r.stdout.strip()).resolve() == copy.resolve(), r.stderr[-500:]
 
 
-def test_the_readme_documents_the_layout_and_the_evaluation_commands():
-    readme = (config.ROOT / "README.md").read_text(encoding="utf-8")
+def test_the_readme_documents_the_evaluation_commands():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
     for needle in ("python -m evaluation.evaluate", "python -m evaluation.calibrate", "--apply-grades", "--export-grading",
-                   "python -m scripts.download_sample_docs", "_bootstrap.py", "gen_cache.jsonl"):
+                   "python -m scripts.download_sample_docs", "gen_cache.jsonl"):
         assert needle in readme, needle
-    assert "evaluation/results/gen_cache.jsonl" in (config.ROOT / ".gitignore").read_text()
+    assert "evaluation/results/gen_cache.jsonl" in (ROOT / ".gitignore").read_text()

@@ -60,6 +60,6 @@ def test_dates_and_plain_text():
 
 
 def test_remove_refs_blanks_only_the_references():
-    from LexoraAI.textutil import remove_refs
+    from textutil import remove_refs
     out = remove_refs("Under Article 83(5) and Section 7.2 on page 14 the fine is 20 000 000 EUR")
     assert "83" not in out and "7.2" not in out and "14" not in out and "20 000 000 EUR" in out

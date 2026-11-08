@@ -13,7 +13,6 @@ import argparse
 import sys
 from pathlib import Path
 
-import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 from generation.answer_generator import AnswerService
 from generation.ollama_client import OllamaClient
 from schemas import AnswerResult

@@ -16,7 +16,6 @@ def test_the_image_installs_tesseract_and_starts_the_launcher():
     docker = read("Dockerfile")
     assert "tesseract-ocr" in docker and 'CMD ["python", "run.py"]' in docker and "COPY requirements.txt" in docker
     assert "EXPOSE 8000 8501" in docker and "ENV API_HOST=0.0.0.0" in docker
-    assert "WORKDIR /srv/LexoraAI" in docker                      # the folder name is the package name (flat layout)
 
 
 def test_compose_publishes_ports_on_localhost_only_and_keeps_data_in_volumes():

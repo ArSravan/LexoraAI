@@ -14,7 +14,6 @@ import hashlib
 import sys
 from pathlib import Path
 
-import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
 from ingestion.pdf_parser import sha256_file
 from retrieval.hybrid import retrieve
 from services import indexer

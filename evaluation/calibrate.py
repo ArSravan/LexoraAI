@@ -10,8 +10,6 @@ decisions. Ties are broken towards fewer false abstentions, then towards the mid
 """
 from __future__ import annotations
 
-import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
-
 import argparse
 import json
 import sys

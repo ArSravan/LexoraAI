@@ -10,8 +10,6 @@ summary.json, summary.md (tables ready for the README) and meta.json (what exact
 """
 from __future__ import annotations
 
-import _bootstrap  # noqa: F401  (makes `import LexoraAI` work in either folder layout)
-
 import argparse
 import csv
 import hashlib
