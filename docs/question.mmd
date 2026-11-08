@@ -1,0 +1,17 @@
+flowchart TB
+    q(["Question"]) --> dec["Query decomposition<br/>compound question to sub-queries"]
+    dec --> bm["BM25<br/>clause-number-aware"]
+    dec --> de["Dense search<br/>MiniLM + ChromaDB"]
+    bm --> rrf["RRF fusion, k = 60"]
+    de --> rrf
+    rrf --> rr["Cross-encoder rerank<br/>sub-query results interleaved"]
+    rr --> gate{"Sufficiency gate<br/>rerank score >= 2.5 and<br/>term coverage >= 0.32"}
+    gate -- no --> abst(["INSUFFICIENT EVIDENCE<br/>reason shown<br/>from the gate: no LLM call"])
+    gate -- yes --> llm["Ollama qwen3.5:9b<br/>numbered passages as untrusted data<br/>JSON answer: claims with quotes"]
+    llm --> val["Pydantic check, then six checks per citation<br/>document, page, clause, quote,<br/>was retrieved, supports the claim"]
+    val --> okq{"at least one<br/>verified claim?"}
+    okq -- "no, first try" --> retry["send the rejection reasons<br/>one retry"]
+    retry --> llm
+    okq -- "no, after retry" --> abst
+    okq -- yes --> post["Conflict detection, numeric comparison<br/>Confidence computed from the checks"]
+    post --> out(["Answer with verified citations<br/>and highlighted evidence page"])

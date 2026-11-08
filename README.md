@@ -26,9 +26,18 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 - [ ] Docker: `Dockerfile` and `docker-compose.yml` are written but NOT yet built or tested
 - [x] Evaluation: validated held-out and dev question sets, retrieval and answer metrics, cached resumable runs,
       human grading, threshold calibration on the dev set, sample-document downloader
-- [ ] Report, architecture diagram and presentation
+- [x] Architecture diagram ([docs/architecture.md](docs/architecture.md))
+- [ ] Presentation
 
 This list is updated as each part is actually committed.
+
+## Architecture
+
+![Architecture overview](docs/overview.png)
+
+The browser talks to a Streamlit UI, the UI to a FastAPI backend, and the backend to local models only. Details, the indexing
+diagram, the question-answering diagram and the reasons behind each design decision are in
+[docs/architecture.md](docs/architecture.md).
 
 ## Setup
 

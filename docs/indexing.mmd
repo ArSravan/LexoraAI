@@ -1,0 +1,14 @@
+flowchart TB
+    pdf["PDF upload"] --> val["Validate<br/>.pdf name, %PDF header, size,<br/>not encrypted, not a duplicate"]
+    val --> ext["Extract text - PyMuPDF<br/>every line keeps page_index and bbox"]
+    ext --> clean["Clean<br/>two-column reading order,<br/>header and footer removal, footnotes"]
+    clean --> ocrq{"image-only<br/>page?"}
+    ocrq -- yes --> ocr["OCR - Tesseract"]
+    ocrq -- no --> tab
+    ocr --> tab["Tables - pdfplumber"]
+    tab --> struct["Legal structure detection<br/>chapter, article, clause, point<br/>state machine with sequence checks"]
+    struct --> chunk["Clause-aware chunking<br/>parent and child chunks,<br/>lead-in text, index_text with clause path"]
+    chunk --> emb["Embeddings - MiniLM<br/>cached in SQLite by text hash"]
+    emb --> chroma[("ChromaDB")]
+    chunk --> cj[("chunks.json")]
+    ext --> meta[("meta.json<br/>pages, clauses, hash")]
