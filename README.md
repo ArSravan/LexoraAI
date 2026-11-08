@@ -155,7 +155,7 @@ python -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybri
   (answers come from the cache, the model is not asked again). The report names who graded and flags incomplete grading.
 * A failed answer is never cached; cached answers that used retrieval are tied to the exact index, so indexing again makes them
   unusable (the no-retrieval baseline is unaffected). A manual grade is kept only while the answer it was given to is unchanged.
-  If answerable questions are refused after the model answered, the report prints a WARNING: read `refusal_reason` and
+  If answerable questions are refused after the model answered, the report prints a WARNING: read `refusal_stage`, `refusal_reason` and
   `verifier_note` in `generation_by_question.csv` before trusting the numbers.
 * Outputs in `evaluation/results/`: `summary.md` (tables for this README), `summary.json`, `retrieval_by_question.csv`,
   `generation_by_question.csv`, `meta.json` (models, library versions, thresholds, document hashes, git commit),
@@ -163,38 +163,9 @@ python -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybri
 
 ### Results
 
-Run 2026-11-08 20:44:50 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
-
-### Retrieval (answerable questions)
-
-| Configuration | recall@1 | recall@3 | recall@5 | full@5 | precision@5 | mrr | latency_ms |
-|---|---|---|---|---|---|---|---|
-| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 20 |
-| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 1019 |
-| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 18 |
-| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 459 |
-| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 1166 |
-
-`recall@k` = share of the required evidence items (document + clause) in the top k; `full@k` = share of questions whose evidence is ALL in the top k (strict for multi-hop).
-
-| Category / configuration | recall@1 | recall@5 | full@5 |
-|---|---|---|---|
-| factual / BM25 only | 0.83 | 1.00 | 1.00 |
-| multihop / BM25 only | 0.20 | 0.67 | 0.40 |
-| factual / Dense only | 0.67 | 0.83 | 0.83 |
-| multihop / Dense only | 0.00 | 0.30 | 0.00 |
-| factual / Hybrid (BM25 + dense, RRF) | 0.83 | 1.00 | 1.00 |
-| multihop / Hybrid (BM25 + dense, RRF) | 0.30 | 0.73 | 0.40 |
-| factual / Hybrid + rerank | 1.00 | 1.00 | 1.00 |
-| multihop / Hybrid + rerank | 0.10 | 0.63 | 0.40 |
-| factual / Hybrid + rerank + query decomposition | 1.00 | 1.00 | 1.00 |
-| multihop / Hybrid + rerank + query decomposition | 0.10 | 0.77 | 0.60 |
-
-### Generation
-
 Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
 
-### Retrieval (answerable questions)
+#### Retrieval (answerable questions)
 
 | Configuration | recall@1 | recall@3 | recall@5 | full@5 | precision@5 | mrr | latency_ms |
 |---|---|---|---|---|---|---|---|
@@ -219,7 +190,7 @@ Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions
 | factual / Hybrid + rerank + query decomposition | 1.00 | 1.00 | 1.00 |
 | multihop / Hybrid + rerank + query decomposition | 0.10 | 0.77 | 0.60 |
 
-### Generation
+#### Generation
 
 | | no_retrieval | hybrid |
 |---|---|---|
@@ -237,7 +208,7 @@ Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions
 
 The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.
 
-### Manual grades
+#### Manual grades
 
 Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct and complete, 0.5 partly correct, 0 wrong/ungrounded/unjustified refusal; unanswerable: 1 correctly says the documents do not contain it, 0 answers from outside knowledge.
 
@@ -248,6 +219,23 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 | Answerable: strictly correct (grade 1) | 0.55 | 0.91 |
 | Unanswerable: handled correctly | 0.50 | 1.00 |
 | All questions: behaviour correct | 0.53 | 0.93 |
+
+#### Reading the numbers
+
+* **Dense-only retrieval is the weakest** (recall@5 0.59, against 0.85 for BM25 alone). The documents are full of clause numbers
+  and defined terms, which BM25 matches exactly. Hybrid is best on recall@5 (0.88) and MRR (0.82), but its gap to BM25 alone is
+  inside the noise of 11 answerable questions.
+* **Reranking is not a clear win on this set.** It raises recall@3 (0.64 to 0.76) but lowers recall@5 (0.88 to 0.83) and MRR
+  (0.82 to 0.76), and costs about 30 times the latency (16 ms to 481 ms). It is kept because the sufficiency gate and the
+  confidence use its score.
+* **Query decomposition** raises full@5 from 0.73 to 0.82 and multi-hop full@5 from 0.40 to 0.60. It was designed after looking
+  at multi-hop failures, so this gain is optimistic.
+* **Retrieval changes the answers more than it changes the ranking.** Graded by hand, answerable questions score 0.91 with retrieval and
+  0.73 without; unanswerable questions are handled correctly 1.00 against 0.50. The price is time: about 70 s per question against 16 s.
+* **Citations.** 0.96 of citations pass the validator. Citation precision against the labelled evidence is 0.75: a quarter of the
+  cited passages are not among the labelled evidence items. Whether those are valid alternatives was not examined.
+* **One false abstention in 11 answerable questions** (hybrid, question M1, the maximum GDPR fine): the sufficiency gate refused it
+  because the best rerank score was 0.66, below the threshold 2.5.
 
 ### Limits of the evaluation
 
