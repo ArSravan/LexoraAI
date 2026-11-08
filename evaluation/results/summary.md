@@ -1,14 +1,14 @@
-Run 2026-11-08 20:44:50 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
+Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
 
 ### Retrieval (answerable questions)
 
 | Configuration | recall@1 | recall@3 | recall@5 | full@5 | precision@5 | mrr | latency_ms |
 |---|---|---|---|---|---|---|---|
-| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 20 |
-| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 1019 |
-| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 18 |
-| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 459 |
-| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 1166 |
+| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 22 |
+| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 816 |
+| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 16 |
+| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 481 |
+| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 1131 |
 
 `recall@k` = share of the required evidence items (document + clause) in the top k; `full@k` = share of questions whose evidence is ALL in the top k (strict for multi-hop).
 
@@ -29,16 +29,16 @@ Run 2026-11-08 20:44:50 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions
 
 | | no_retrieval | hybrid |
 |---|---|---|
-| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.00 |
-| Citations verified by the validator | - | - |
-| Citation precision vs labelled evidence | - | - |
-| Abstention accuracy (all questions) | 0.73 | 0.27 |
-| False-abstention rate (answerable refused) | 0.00 | 1.00 |
+| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.73 |
+| Citations verified by the validator | - | 0.96 |
+| Citation precision vs labelled evidence | - | 0.75 |
+| Abstention accuracy (all questions) | 0.73 | 0.93 |
+| False-abstention rate (answerable refused) | 0.00 | 0.09 |
 | Correct-abstention rate (unanswerable refused) | 0.00 | 1.00 |
-| Mean retrieval + rerank time (s) | 0.00 | 0.97 |
-| Mean generation time (s) | 16.05 | 128.79 |
-| Mean total time (s) | 16.10 | 129.81 |
-| Mean completion tokens | 95 | 838 |
+| Mean retrieval + rerank time (s) | 0.00 | 0.95 |
+| Mean generation time (s) | 16.05 | 69.04 |
+| Mean total time (s) | 16.10 | 70.05 |
+| Mean completion tokens | 95 | 447 |
 | Answers that failed with an error | 0 | 0 |
 
 The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.
@@ -50,7 +50,7 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 | | no_retrieval | hybrid |
 |---|---|---|
 | Answers graded | 15 / 15 | 15 / 15 |
-| Answerable: mean score (1 / 0.5 / 0) | 0.73 | 0.00 |
-| Answerable: strictly correct (grade 1) | 0.55 | 0.00 |
+| Answerable: mean score (1 / 0.5 / 0) | 0.73 | 0.91 |
+| Answerable: strictly correct (grade 1) | 0.55 | 0.91 |
 | Unanswerable: handled correctly | 0.50 | 1.00 |
-| All questions: behaviour correct | 0.53 | 0.27 |
+| All questions: behaviour correct | 0.53 | 0.93 |

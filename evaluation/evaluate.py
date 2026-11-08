@@ -160,8 +160,8 @@ def summarize_generation(rows: list[dict]) -> dict[str, dict]:
             "mean_prompt_tokens": round(mean(r["prompt_tokens"] for r in rs)),
             "mean_completion_tokens": round(mean(r["completion_tokens"] for r in rs)),
             "n_errors": sum(1 for r in rs if r["error"]),
-            "answerable_refusals_by_stage": {st: sum(1 for r in ans if r["refusal_stage"] == st)
-                                             for st in ("gate", "model", "verifier", "error")},
+            "answerable_refusals_by_stage": {st: sum(1 for r in ans if r.get("refusal_stage", "") == st)
+                                 for st in ("gate", "model", "verifier", "error")},
         }
     return out
 
@@ -254,7 +254,8 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        fields = list(dict.fromkeys(k for r in rows for k in r))
+        w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
 

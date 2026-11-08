@@ -59,3 +59,5 @@ def test_the_readme_documents_the_evaluation_commands():
                    "python -m scripts.download_sample_docs", "gen_cache.jsonl"):
         assert needle in readme, needle
     assert "evaluation/results/gen_cache.jsonl" in (ROOT / ".gitignore").read_text()
+    assert "_bootstrap" not in readme and "LexoraAI.config" not in readme           # the README describes the code as it is
+    assert "plain name" in readme and "refusal_stage" in readme

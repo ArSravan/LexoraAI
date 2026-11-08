@@ -125,12 +125,10 @@ Docker (`docker compose up --build`) is written but has not been built or run ye
 
 ## Project layout
 
-The project folder is named `LexoraAI` and IS the Python package: `config.py`, `api/`, `services/`, `retrieval/` ...
-sit next to `app.py` and `main.py`, and the folder has an `__init__.py`. Code imports it as `LexoraAI.config` etc. For
-that to work Python needs the folder's parent on its path; `_bootstrap.py` (imported first by `main.py`, `app.py`,
-`scripts/` and `evaluation/`) arranges it, so no `PYTHONPATH` setting is needed. Run the scripts from the project folder
-with `python -m scripts.<name>` / `python -m evaluation.<name>`. `storage/` (uploaded files, indexes, database) and `.env`
-live inside the project folder.
+The project folder holds the modules directly (`config.py`, `api/`, `services/`, `retrieval/`, ... next to `app.py`
+and `main.py`) and every module imports the others by plain name (`from config import get_settings`). Run everything from
+the project folder (`python run.py`, `python -m scripts.<name>`, `python -m evaluation.<name>`, `python -m pytest`); the folder
+can have any name. `storage/` (uploaded files, indexes, database) and `.env` live inside the project folder.
 
 ## Evaluation
 
@@ -155,6 +153,10 @@ python -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybri
   cannot judge a refusal. `--export-grading` writes `evaluation/results/manual_grades.csv`; read each answer, enter 1 / 0.5 / 0
   (scale in the file `evaluation/grading.py`), then run the same command with `--apply-grades <file> --grader "<your name>"`
   (answers come from the cache, the model is not asked again). The report names who graded and flags incomplete grading.
+* A failed answer is never cached; cached answers that used retrieval are tied to the exact index, so indexing again makes them
+  unusable (the no-retrieval baseline is unaffected). A manual grade is kept only while the answer it was given to is unchanged.
+  If answerable questions are refused after the model answered, the report prints a WARNING: read `refusal_reason` and
+  `verifier_note` in `generation_by_question.csv` before trusting the numbers.
 * Outputs in `evaluation/results/`: `summary.md` (tables for this README), `summary.json`, `retrieval_by_question.csv`,
   `generation_by_question.csv`, `meta.json` (models, library versions, thresholds, document hashes, git commit),
   `calibration.json`.
@@ -190,18 +192,47 @@ Run 2026-11-08 20:44:50 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions
 
 ### Generation
 
+Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
+
+### Retrieval (answerable questions)
+
+| Configuration | recall@1 | recall@3 | recall@5 | full@5 | precision@5 | mrr | latency_ms |
+|---|---|---|---|---|---|---|---|
+| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 22 |
+| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 816 |
+| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 16 |
+| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 481 |
+| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 1131 |
+
+`recall@k` = share of the required evidence items (document + clause) in the top k; `full@k` = share of questions whose evidence is ALL in the top k (strict for multi-hop).
+
+| Category / configuration | recall@1 | recall@5 | full@5 |
+|---|---|---|---|
+| factual / BM25 only | 0.83 | 1.00 | 1.00 |
+| multihop / BM25 only | 0.20 | 0.67 | 0.40 |
+| factual / Dense only | 0.67 | 0.83 | 0.83 |
+| multihop / Dense only | 0.00 | 0.30 | 0.00 |
+| factual / Hybrid (BM25 + dense, RRF) | 0.83 | 1.00 | 1.00 |
+| multihop / Hybrid (BM25 + dense, RRF) | 0.30 | 0.73 | 0.40 |
+| factual / Hybrid + rerank | 1.00 | 1.00 | 1.00 |
+| multihop / Hybrid + rerank | 0.10 | 0.63 | 0.40 |
+| factual / Hybrid + rerank + query decomposition | 1.00 | 1.00 | 1.00 |
+| multihop / Hybrid + rerank + query decomposition | 0.10 | 0.77 | 0.60 |
+
+### Generation
+
 | | no_retrieval | hybrid |
 |---|---|---|
-| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.00 |
-| Citations verified by the validator | - | - |
-| Citation precision vs labelled evidence | - | - |
-| Abstention accuracy (all questions) | 0.73 | 0.27 |
-| False-abstention rate (answerable refused) | 0.00 | 1.00 |
+| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.73 |
+| Citations verified by the validator | - | 0.96 |
+| Citation precision vs labelled evidence | - | 0.75 |
+| Abstention accuracy (all questions) | 0.73 | 0.93 |
+| False-abstention rate (answerable refused) | 0.00 | 0.09 |
 | Correct-abstention rate (unanswerable refused) | 0.00 | 1.00 |
-| Mean retrieval + rerank time (s) | 0.00 | 0.97 |
-| Mean generation time (s) | 16.05 | 128.79 |
-| Mean total time (s) | 16.10 | 129.81 |
-| Mean completion tokens | 95 | 838 |
+| Mean retrieval + rerank time (s) | 0.00 | 0.95 |
+| Mean generation time (s) | 16.05 | 69.04 |
+| Mean total time (s) | 16.10 | 70.05 |
+| Mean completion tokens | 95 | 447 |
 | Answers that failed with an error | 0 | 0 |
 
 The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.
@@ -213,11 +244,10 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 | | no_retrieval | hybrid |
 |---|---|---|
 | Answers graded | 15 / 15 | 15 / 15 |
-| Answerable: mean score (1 / 0.5 / 0) | 0.73 | 0.00 |
-| Answerable: strictly correct (grade 1) | 0.55 | 0.00 |
+| Answerable: mean score (1 / 0.5 / 0) | 0.73 | 0.91 |
+| Answerable: strictly correct (grade 1) | 0.55 | 0.91 |
 | Unanswerable: handled correctly | 0.50 | 1.00 |
-| All questions: behaviour correct | 0.53 | 0.27 |
-
+| All questions: behaviour correct | 0.53 | 0.93 |
 
 ### Limits of the evaluation
 
