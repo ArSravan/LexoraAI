@@ -27,7 +27,7 @@ against the source - or an honest "INSUFFICIENT EVIDENCE".
 - [x] Evaluation: validated held-out and dev question sets, retrieval and answer metrics, cached resumable runs,
       human grading, threshold calibration on the dev set, sample-document downloader
 - [x] Architecture diagram ([docs/architecture.md](docs/architecture.md))
-- [ ] Presentation
+- [x] Presentation outline, live-demo script and dry-run log ([docs/](docs/))
 
 This list is updated as each part is actually committed.
 
@@ -254,3 +254,5 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 * Query decomposition was added after looking at multi-hop failures of a similar prototype; its gain on this set is
   therefore optimistic.
 * The citation validator checks lexical and numeric support, not logical entailment.
+* The thresholds of the sufficiency gate were calibrated on EU legal texts. Other kinds of documents are checked in
+  [docs/dry_runs.md](docs/dry_runs.md), not assumed.

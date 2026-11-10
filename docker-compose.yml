@@ -1,18 +1,38 @@
 # docker compose up --build        then open http://127.0.0.1:8501
 # Ollama must run on the host (ollama serve); the container reaches it through host.docker.internal.
+# No Ollama on the host?  docker compose --profile ollama up --build
+#   then:  docker compose exec ollama ollama pull qwen3.5:9b
+#   and start with LEXORA_OLLAMA_BASE_URL=http://ollama:11434 set (in .env or the shell).
+# Settings from a local .env (for example the thresholds written by evaluation.calibrate) are passed on.
 services:
   lexora:
     build: .
+    image: lexora-ai
     ports:
       - "127.0.0.1:8501:8501"      # UI
       - "127.0.0.1:8000:8000"      # API (docs at /docs)
-    environment:
-      LEXORA_OLLAMA_BASE_URL: http://host.docker.internal:11434
+    env_file:
+      - path: .env
+        required: false
+    environment:                                  # these win over the .env file above
+      LEXORA_STORAGE_DIR: /data                   # a host path in .env must not redirect the container's data
+      LEXORA_OLLAMA_BASE_URL: ${LEXORA_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"     # needed on Linux; Docker Desktop provides it already
     volumes:
       - lexora-data:/data                        # uploaded documents, indexes, database
-      - hf-cache:/root/.cache/huggingface        # the two small models are downloaded once
+      - hf-cache:/home/lexora/.cache/huggingface # the two small models (baked into the image, or downloaded once)
+    restart: unless-stopped
+
+  ollama:                                        # optional: only with --profile ollama
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
 volumes:
   lexora-data:
   hf-cache:
+  ollama-models:

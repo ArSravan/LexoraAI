@@ -5,3 +5,7 @@ __pycache__
 .pytest_cache
 .env
 storage
+*.log
+.idea
+.vscode
+evaluation/results/gen_cache.jsonl

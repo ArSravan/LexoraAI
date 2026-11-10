@@ -9,7 +9,7 @@ endif
 # use the virtual environment when it exists, otherwise whatever `python` is on the PATH
 PY ?= $(if $(wildcard .venv),$(VENV_PY),python)
 
-.PHONY: help setup run api ui test ask
+.PHONY: help setup run api ui test ask eval extended report check docker-build docker-up docker-down docker-smoke
 help:  ## show this list
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
 
@@ -32,3 +32,15 @@ test:  ## run the test suite
 
 ask:  ## ask from the command line:  make ask PDFS="a.pdf b.pdf" Q="your question"
 	$(PY) -m scripts.ask_pdf $(PDFS) -q "$(Q)"
+
+docker-build:  ## build the Docker image (about 10 minutes the first time)
+	docker compose build
+
+docker-up:  ## start the application in Docker (Ollama must run on the host), then open http://127.0.0.1:8501
+	docker compose up -d --build
+
+docker-down:  ## stop the container (the data volume is kept)
+	docker compose down
+
+docker-smoke:  ## test the running container end to end (add ARGS=--with-llm to also ask a grounded question)
+	$(PY) -m scripts.smoke_test $(ARGS)
