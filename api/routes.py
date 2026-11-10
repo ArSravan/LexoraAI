@@ -195,9 +195,12 @@ def document_info(doc_id: str):
     doc = _doc_or_404(doc_id)
     parsed = indexer.load_parsed(doc["case_id"], doc_id)
     structure = indexer.load_structure(doc_id=doc_id, case_id=doc["case_id"])
+    scores = (indexer.load_anomaly_scores(doc["case_id"], doc_id) if parsed else None) or []
     pages = [{"page_index": p.page_index, "page_number": p.page_number, "char_count": p.char_count,
               "is_scanned": p.needs_ocr, "method": p.method, "ocr_confidence": p.ocr_confidence,
-              "n_tables": len(p.tables), "warning": p.warning} for p in parsed.pages] if parsed else []
+              "n_tables": len(p.tables), "warning": p.warning,
+              "anomaly_score": scores[i] if i < len(scores) else None,
+              "anomalous": bool(i < len(scores) and scores[i] > 1.0)} for i, p in enumerate(parsed.pages)] if parsed else []
     return {"document": doc, "pages": pages, "structure": {k: v for k, v in structure.items() if k != "headings"},
             "headings": structure.get("headings", [])[:300]}
 

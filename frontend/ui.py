@@ -42,7 +42,8 @@ def page_rows(pages: list[dict]) -> list[dict]:
     return [{"Page": p["page_number"], "Characters": p["char_count"],
              "Read by": "OCR" if p["method"] == "ocr" else ("scan, not read" if p["is_scanned"] else "text layer"),
              "OCR confidence": f"{p['ocr_confidence']:.0f}%" if p.get("ocr_confidence") is not None else "",
-             "Tables": p["n_tables"], "Note": p["warning"]} for p in pages]
+             "Tables": p["n_tables"], "Unusual page": "⚠ yes" if p.get("anomalous") else "",
+             "Note": p["warning"]} for p in pages]
 
 
 def evidence_requests(result: dict) -> list[dict]:

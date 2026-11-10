@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Callable
 
 from config import get_settings
+from ingestion import page_anomaly
 from ingestion.chunker import ChunkResult, chunk_document
 from ingestion.pdf_parser import PDFValidationError, parse_pdf
 from retrieval import hybrid, vector_store
@@ -126,6 +127,24 @@ def load_parsed(case_id: str, doc_id: str) -> ParsedDocument | None:
     return ParsedDocument.model_validate_json(f.read_text(encoding="utf-8")) if f.exists() else None
 
 
+def load_anomaly_scores(case_id: str, doc_id: str) -> list[float] | None:
+    """Per-page anomaly scores (> 1: the page looks unusual for this document), or None (short document or none computed)."""
+    f = doc_dir(case_id, doc_id) / "anomaly.json"
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    except ValueError:
+        return None
+
+
+def _write_anomaly_scores(d: Path, parsed: ParsedDocument) -> None:
+    scores = page_anomaly.score_document(parsed.pages)
+    f = d / "anomaly.json"
+    if scores is None:
+        f.unlink(missing_ok=True)                      # a re-index of a now-short document must not keep old scores
+    else:
+        f.write_text(json.dumps(scores), encoding="utf-8")
+
+
 def load_structure(case_id: str, doc_id: str) -> dict:
     """The detected structure summary (structure.json) of a document, or {}."""
     f = doc_dir(case_id, doc_id) / "structure.json"
@@ -159,6 +178,7 @@ def index_document(case_id: str, doc_id: str, force_reparse: bool = False,
             (d / "parsed.json").write_text(parsed.model_dump_json(), encoding="utf-8")
         result = index_parsed(case_id, parsed, lambda f, m: prog(0.5 + 0.5 * f, m))
         (d / "structure.json").write_text(json.dumps(result.structure), encoding="utf-8")
+        _write_anomaly_scores(d, parsed)
         scanned = [p for p in parsed.pages if p.needs_ocr]
         recovered = [p for p in scanned if p.method == "ocr"]
         db.update_document(
