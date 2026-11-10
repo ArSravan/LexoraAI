@@ -76,31 +76,107 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 
 _Where a false abstention comes from, and what moving the threshold would cost. Analysis only; nothing was tuned on it._
 
-**Not run yet.** Command: `python -m evaluation.diagnostics sample_docs/*.pdf`
+| rerank threshold | held-out: accuracy / false abstention / correct abstention | dev: accuracy / false abstention / correct abstention |
+|---|---|---|
+| -1 | 0.93 / 0.00 / 0.75 | 0.93 / 0.00 / 0.83 |
+| 0 | 1.00 / 0.00 / 1.00 | 0.93 / 0.00 / 0.83 |
+| 0.25 | 1.00 / 0.00 / 1.00 | 0.93 / 0.00 / 0.83 |
+| 0.5 | 1.00 / 0.00 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 1 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 1.5 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 2 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 2.5 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 3 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+| 4 | 0.93 / 0.09 / 1.00 | 1.00 / 0.00 / 1.00 |
+
+Shipped thresholds: rerank >= 2.5, coverage >= 0.32 (chosen on the dev set only).
+
+False abstention M1: best rerank score 0.66, coverage 0.50; labelled evidence at rank(s) [4, 2] with cross-encoder score(s) [0.59, 0.66].
 
 ## OCR accuracy and fallback (extended feature 1)
 
 _Character and word error rates on degraded scans of real pages._
 
-**Not run yet.** Command: `python -m evaluation.ocr_eval sample_docs/*.pdf`
+OCR accuracy on 6 real pages from Data_Act_2023_2854.pdf, GDPR_Regulation_2016_679.pdf, ePrivacy_Directive_2002_58.pdf (seed 42). Ground truth: the digital text of the same page.
+
+| Condition | Pages | CER | WER | Word recall | Mean OCR confidence |
+|---|---|---|---|---|---|
+| clean scan, 200 dpi | 6 | 0.006 | 0.019 | 0.985 | 94.2 % |
+| noisy scan | 6 | 0.018 | 0.037 | 0.981 | 93.3 % |
+| skewed and blurred | 6 | 0.015 | 0.029 | 0.984 | 92.9 % |
+| low contrast, JPEG 35, 150 dpi | 6 | 0.007 | 0.028 | 0.978 | 92.2 % |
+
+Fallback with OCR switched off:
+* a PDF that consists only of scans: rejected: No text could be extracted from this PDF (image-only PDF and OCR unavailable or empty). The document was not indexed.
+* a mixed PDF: scanned page flagged = True, digital page still indexed = True; document warning: "1 page(s) have no text layer and need OCR."
 
 ## Table extraction accuracy (extended feature 2)
 
 _Cell accuracy against a hand-written ground truth._
 
-**Not run yet.** Command: `python -m evaluation.table_eval sample_docs/*.pdf`
+Table extraction against a hand-written ground truth (synthetic PDFs, exact truth).
+
+| Case | Tables found / expected | Cells right / expected | Accuracy |
+|---|---|---|---|
+| plain grid, numbers | 1 / 1 | 20 / 20 | 100% |
+| legal table with caption | 1 / 1 | 12 / 12 | 100% |
+| header spanning three columns | 1 / 1 | 10 / 10 | 100% |
+| label spanning rows | 1 / 1 | 13 / 13 | 100% |
+| wrapped multi-line cells | 1 / 1 | 6 / 6 | 100% |
+| two tables on one page | 2 / 2 | 21 / 21 | 100% |
+| long table, 12 rows | 1 / 1 | 65 / 65 | 100% |
+| horizontal rules only (not expected to work) | 0 / 1 | 0 / 20 | 0% |
+| no ruling lines (not expected to work) | 0 / 1 | 0 / 20 | 0% |
+
+* detection: 8 of 10 tables (80%)
+* cell accuracy over detected tables: 100.0%; overall (missed tables count as 0): 78.6%; over the cases with ruling lines: 100.0%
+* captions attached: 1 of 1
+
+Tables the extractor finds in real documents (no ground truth, so no accuracy):
+
+| Document | Pages | Tables found |
+|---|---|---|
+| Data_Act_2023_2854.pdf | 71 | 0 |
+| GDPR_Regulation_2016_679.pdf | 88 | 0 |
+| ePrivacy_Directive_2002_58.pdf | 11 | 0 |
 
 ## Autoencoder page-anomaly detector (extended feature 8)
 
 _AUROC against a plain baseline, false alarms, and why nothing is trained in advance._
 
-**Not run yet.** Command: `python -m evaluation.page_anomaly_eval sample_docs/*.pdf`
+Autoencoder page-anomaly detector, fitted on each document's own pages. Documents: Data_Act_2023_2854.pdf (71 pages), GDPR_Regulation_2016_679.pdf (88 pages). Seeds [42, 43, 44]; 10% of the pages of a document are replaced by the defective version.
+
+| Defect | Defective pages | AUROC autoencoder | AUROC z-score baseline | Detected at K | False alarms on intact pages |
+|---|---|---|---|---|---|
+| garbled | 48 | 0.875 | 0.992 | 47% | 5.0% |
+| symbol noise | 48 | 0.967 | 0.994 | 91% | 5.3% |
+| near empty | 48 | 0.998 | 0.997 | 100% | 7.4% |
+| number dump | 48 | 0.987 | 1.000 | 100% | 3.9% |
+| repeated line | 48 | 0.943 | 0.908 | 66% | 5.0% |
+| bad scan (OCR) | 45 | 0.989 | 1.000 | 100% | 5.4% |
+
+Threshold = median + K x MAD of the document's own reconstruction errors. K = 3 is the smallest value whose false-alarm rate on the CLEAN documents is at most 10%; no defective page was used to choose it.
+
+| K | 3 | 4 | 6 | 8 | 12 | 16 | 24 |
+|---|---|---|---|---|---|---|---|
+| false alarms on clean documents | 9.0% | 5.2% | 3.2% | 1.1% | 1.1% | 0.6% | 0.6% |
+
+Cross-document (a model fitted on the other documents, same K): share of INTACT pages flagged: Data_Act_2023_2854.pdf: 35%; GDPR_Regulation_2016_679.pdf: 12%.
 
 ## Ablation: text only vs text + tables (extended feature 7)
 
 _Retrieval of table cells with and without table extraction._
 
-**Not run yet.** Command: `python -m evaluation.ablation_tables`
+Text only versus text + tables on a generated contract (Services_Agreement.pdf), 6 questions answerable only from table cells. Table chunks in the index: {'text only': 0, 'text + tables': 3}.
+
+| Search | Index | recall@1 | recall@3 | recall@5 | MRR |
+|---|---|---|---|---|---|
+| bm25 | text only | 1.00 | 1.00 | 1.00 | 1.00 |
+| bm25 | text + tables | 0.83 | 1.00 | 1.00 | 0.92 |
+| hybrid + rerank | text only | 1.00 | 1.00 | 1.00 | 1.00 |
+| hybrid + rerank | text + tables | 1.00 | 1.00 | 1.00 | 1.00 |
+
+A chunk counts as the evidence when it contains every string of the answer. Six questions: a direction, not a significance test.
 
 ## Latency and cost (extended feature 11)
 
@@ -112,4 +188,14 @@ _Seconds and tokens per question, and what the sufficiency gate saves._
 
 _Cold against warm embedding._
 
-**Not run yet.** Command: `python -m evaluation.bench_indexing sample_docs/ePrivacy_Directive_2002_58.pdf`
+Embedding cache on ePrivacy_Directive_2002_58.pdf (11 pages, 128 chunks, model `sentence-transformers/all-MiniLM-L6-v2`).
+
+| Step | Seconds |
+|---|---|
+| Extract the PDF | 1.21 |
+| Chunk | 0.01 |
+| Embed all chunks, cache empty | 10.529 |
+| Embed the same chunks again, cache warm | 0.002 |
+| Index the document again (chunk, embed from cache, write both stores) | 0.29 |
+
+Speed-up of the embedding step: 5048.6x.

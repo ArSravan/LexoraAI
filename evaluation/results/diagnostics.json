@@ -1,0 +1,477 @@
+{
+ "note": "post-hoc analysis; the shipped thresholds were calibrated on the dev set only",
+ "shipped": {
+  "abstain_rerank_min": 2.5,
+  "abstain_coverage_min": 0.32
+ },
+ "heldout_features": [
+  {
+   "id": "F1",
+   "answerable": true,
+   "top_score": 8.55435848236084,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    8.55
+   ]
+  },
+  {
+   "id": "F2",
+   "answerable": true,
+   "top_score": 8.629125595092773,
+   "coverage": 0.8181818181818181,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    8.63
+   ]
+  },
+  {
+   "id": "F3",
+   "answerable": true,
+   "top_score": 9.231956481933594,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    9.23
+   ]
+  },
+  {
+   "id": "F4",
+   "answerable": true,
+   "top_score": 7.894194602966309,
+   "coverage": 0.75,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    7.89
+   ]
+  },
+  {
+   "id": "F5",
+   "answerable": true,
+   "top_score": 10.21700382232666,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    10.22
+   ]
+  },
+  {
+   "id": "F6",
+   "answerable": true,
+   "top_score": 6.692792892456055,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    6.69,
+    6.18,
+    4.8
+   ]
+  },
+  {
+   "id": "M1",
+   "answerable": true,
+   "top_score": 0.6637605428695679,
+   "coverage": 0.5,
+   "gold_ranks": [
+    4,
+    2
+   ],
+   "gold_rerank_scores": [
+    0.59,
+    0.66
+   ]
+  },
+  {
+   "id": "M2",
+   "answerable": true,
+   "top_score": 8.237266540527344,
+   "coverage": 0.9,
+   "gold_ranks": [
+    3,
+    2
+   ],
+   "gold_rerank_scores": [
+    7.44,
+    6.79
+   ]
+  },
+  {
+   "id": "M3",
+   "answerable": true,
+   "top_score": 7.915713787078857,
+   "coverage": 0.8333333333333334,
+   "gold_ranks": [
+    1,
+    2
+   ],
+   "gold_rerank_scores": [
+    7.92,
+    7.74,
+    7.69
+   ]
+  },
+  {
+   "id": "M4",
+   "answerable": true,
+   "top_score": 6.503437042236328,
+   "coverage": 0.8,
+   "gold_ranks": [
+    null,
+    null,
+    2
+   ],
+   "gold_rerank_scores": [
+    4.87
+   ]
+  },
+  {
+   "id": "M5",
+   "answerable": true,
+   "top_score": 8.104534149169922,
+   "coverage": 0.9090909090909091,
+   "gold_ranks": [
+    2,
+    null
+   ],
+   "gold_rerank_scores": [
+    4.6
+   ]
+  },
+  {
+   "id": "U1",
+   "answerable": false,
+   "top_score": -6.0750532150268555,
+   "coverage": 0.6666666666666667,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "U2",
+   "answerable": false,
+   "top_score": -3.070007801055908,
+   "coverage": 0.875,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "U3",
+   "answerable": false,
+   "top_score": -0.8172644972801208,
+   "coverage": 0.4285714285714286,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "U4",
+   "answerable": false,
+   "top_score": -1.4264347553253174,
+   "coverage": 0.4285714285714286,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  }
+ ],
+ "dev_features": [
+  {
+   "id": "D1",
+   "answerable": true,
+   "top_score": 7.303017616271973,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    7.3
+   ]
+  },
+  {
+   "id": "D2",
+   "answerable": true,
+   "top_score": 8.978700637817383,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    8.98,
+    8.81,
+    8.78,
+    8.68,
+    8.59
+   ]
+  },
+  {
+   "id": "D3",
+   "answerable": true,
+   "top_score": 9.332723617553711,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    9.33
+   ]
+  },
+  {
+   "id": "D4",
+   "answerable": true,
+   "top_score": 8.611077308654785,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    8.61
+   ]
+  },
+  {
+   "id": "D5",
+   "answerable": true,
+   "top_score": 9.359112739562988,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    9.36
+   ]
+  },
+  {
+   "id": "D6",
+   "answerable": true,
+   "top_score": 8.77807903289795,
+   "coverage": 1.0,
+   "gold_ranks": [
+    1
+   ],
+   "gold_rerank_scores": [
+    8.78
+   ]
+  },
+  {
+   "id": "DM1",
+   "answerable": true,
+   "top_score": 7.180280685424805,
+   "coverage": 0.875,
+   "gold_ranks": [
+    null,
+    1
+   ],
+   "gold_rerank_scores": [
+    7.18
+   ]
+  },
+  {
+   "id": "DM2",
+   "answerable": true,
+   "top_score": 4.262612342834473,
+   "coverage": 0.6666666666666667,
+   "gold_ranks": [
+    null,
+    5
+   ],
+   "gold_rerank_scores": [
+    3.11
+   ]
+  },
+  {
+   "id": "DU1",
+   "answerable": false,
+   "top_score": -1.9687409400939941,
+   "coverage": 0.25,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "DU2",
+   "answerable": false,
+   "top_score": -6.6798858642578125,
+   "coverage": 1.0,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "DU3",
+   "answerable": false,
+   "top_score": -7.067745208740234,
+   "coverage": 0.4285714285714286,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "DU4",
+   "answerable": false,
+   "top_score": -10.682960510253906,
+   "coverage": 0.5714285714285714,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "DU5",
+   "answerable": false,
+   "top_score": -5.673171043395996,
+   "coverage": 0.5,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  },
+  {
+   "id": "DU6",
+   "answerable": false,
+   "top_score": 0.35381925106048584,
+   "coverage": 0.8333333333333334,
+   "gold_ranks": [],
+   "gold_rerank_scores": []
+  }
+ ],
+ "sweep_heldout": [
+  {
+   "rerank_min": -1.0,
+   "accuracy": 0.933,
+   "false_abstention": 0.0,
+   "correct_abstention": 0.75
+  },
+  {
+   "rerank_min": 0.0,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 0.25,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 0.5,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 1.0,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 1.5,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 2.0,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 2.5,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 3.0,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 4.0,
+   "accuracy": 0.933,
+   "false_abstention": 0.091,
+   "correct_abstention": 1.0
+  }
+ ],
+ "sweep_dev": [
+  {
+   "rerank_min": -1.0,
+   "accuracy": 0.929,
+   "false_abstention": 0.0,
+   "correct_abstention": 0.833
+  },
+  {
+   "rerank_min": 0.0,
+   "accuracy": 0.929,
+   "false_abstention": 0.0,
+   "correct_abstention": 0.833
+  },
+  {
+   "rerank_min": 0.25,
+   "accuracy": 0.929,
+   "false_abstention": 0.0,
+   "correct_abstention": 0.833
+  },
+  {
+   "rerank_min": 0.5,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 1.0,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 1.5,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 2.0,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 2.5,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 3.0,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  },
+  {
+   "rerank_min": 4.0,
+   "accuracy": 1.0,
+   "false_abstention": 0.0,
+   "correct_abstention": 1.0
+  }
+ ],
+ "false_abstentions_heldout": [
+  {
+   "id": "M1",
+   "answerable": true,
+   "top_score": 0.6637605428695679,
+   "coverage": 0.5,
+   "gold_ranks": [
+    4,
+    2
+   ],
+   "gold_rerank_scores": [
+    0.59,
+    0.66
+   ]
+  }
+ ]
+}

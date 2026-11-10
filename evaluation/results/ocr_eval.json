@@ -1,0 +1,314 @@
+{
+  "seed": 42,
+  "pages_per_document": 2,
+  "documents": [
+    "Data_Act_2023_2854.pdf",
+    "GDPR_Regulation_2016_679.pdf",
+    "ePrivacy_Directive_2002_58.pdf"
+  ],
+  "summary": {
+    "clean scan, 200 dpi": {
+      "cer": 0.006,
+      "wer": 0.0194,
+      "word_recall": 0.9849,
+      "ocr_confidence": 94.25,
+      "pages": 6
+    },
+    "noisy scan": {
+      "cer": 0.0175,
+      "wer": 0.0368,
+      "word_recall": 0.9807,
+      "ocr_confidence": 93.3333,
+      "pages": 6
+    },
+    "skewed and blurred": {
+      "cer": 0.0152,
+      "wer": 0.0293,
+      "word_recall": 0.9844,
+      "ocr_confidence": 92.8667,
+      "pages": 6
+    },
+    "low contrast, JPEG 35, 150 dpi": {
+      "cer": 0.0075,
+      "wer": 0.0283,
+      "word_recall": 0.9779,
+      "ocr_confidence": 92.2,
+      "pages": 6
+    }
+  },
+  "pages": [
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 1,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 93.1,
+      "cer": 0.011572700296735905,
+      "wer": 0.03225806451612903,
+      "word_recall": 0.9715370018975332,
+      "n_chars": 3370
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 1,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 94.5,
+      "cer": 0.012759643916913947,
+      "wer": 0.030360531309297913,
+      "word_recall": 0.969639468690702,
+      "n_chars": 3370
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 1,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 91.1,
+      "cer": 0.010979228486646885,
+      "wer": 0.03415559772296015,
+      "word_recall": 0.9772296015180265,
+      "n_chars": 3370
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 1,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 90.2,
+      "cer": 0.009495548961424332,
+      "wer": 0.03984819734345351,
+      "word_recall": 0.9658444022770398,
+      "n_chars": 3370
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 71,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 94.0,
+      "cer": 0.00045682960255824577,
+      "wer": 0.002785515320334262,
+      "word_recall": 0.9972144846796658,
+      "n_chars": 2189
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 71,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 91.8,
+      "cer": 0.0013704888076747374,
+      "wer": 0.005571030640668524,
+      "word_recall": 0.9972144846796658,
+      "n_chars": 2189
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 71,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 93.5,
+      "cer": 0.0031978072179077205,
+      "wer": 0.008356545961002786,
+      "word_recall": 0.9972144846796658,
+      "n_chars": 2189
+    },
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "page": 71,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 91.4,
+      "cer": 0.0022841480127912287,
+      "wer": 0.008356545961002786,
+      "word_recall": 0.9916434540389972,
+      "n_chars": 2189
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 1,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 94.2,
+      "cer": 0.006659267480577136,
+      "wer": 0.04308390022675737,
+      "word_recall": 0.9591836734693877,
+      "n_chars": 2703
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 1,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 93.1,
+      "cer": 0.006659267480577136,
+      "wer": 0.03854875283446712,
+      "word_recall": 0.963718820861678,
+      "n_chars": 2703
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 1,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 92.7,
+      "cer": 0.011838697743248243,
+      "wer": 0.04081632653061224,
+      "word_recall": 0.963718820861678,
+      "n_chars": 2703
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 1,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 91.4,
+      "cer": 0.0059193488716241215,
+      "wer": 0.036281179138321996,
+      "word_recall": 0.963718820861678,
+      "n_chars": 2703
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 87,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 94.7,
+      "cer": 0.0,
+      "wer": 0.0,
+      "word_recall": 1.0,
+      "n_chars": 2470
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 87,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 94.7,
+      "cer": 0.0,
+      "wer": 0.0,
+      "word_recall": 1.0,
+      "n_chars": 2470
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 87,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 93.5,
+      "cer": 0.007692307692307693,
+      "wer": 0.0076726342710997444,
+      "word_recall": 0.9974424552429667,
+      "n_chars": 2470
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "page": 87,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 93.6,
+      "cer": 0.0024291497975708503,
+      "wer": 0.01278772378516624,
+      "word_recall": 0.989769820971867,
+      "n_chars": 2470
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 1,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 94.4,
+      "cer": 0.006599298824499897,
+      "wer": 0.0213903743315508,
+      "word_recall": 0.9812834224598931,
+      "n_chars": 4849
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 1,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 93.6,
+      "cer": 0.007630439265828006,
+      "wer": 0.03208556149732621,
+      "word_recall": 0.9705882352941176,
+      "n_chars": 4849
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 1,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 91.8,
+      "cer": 0.02887193235718705,
+      "wer": 0.0481283422459893,
+      "word_recall": 0.9772727272727273,
+      "n_chars": 4849
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 1,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 92.7,
+      "cer": 0.01278614147246855,
+      "wer": 0.045454545454545456,
+      "word_recall": 0.9665775401069518,
+      "n_chars": 4849
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 11,
+      "condition": "clean scan, 200 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 95.1,
+      "cer": 0.010810810810810811,
+      "wer": 0.016778523489932886,
+      "word_recall": 1.0,
+      "n_chars": 1850
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 11,
+      "condition": "noisy scan",
+      "ocr_used": true,
+      "ocr_confidence": 92.3,
+      "cer": 0.07675675675675675,
+      "wer": 0.11409395973154363,
+      "word_recall": 0.9832214765100671,
+      "n_chars": 1850
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 11,
+      "condition": "skewed and blurred",
+      "ocr_used": true,
+      "ocr_confidence": 94.6,
+      "cer": 0.028648648648648647,
+      "wer": 0.03691275167785235,
+      "word_recall": 0.9932885906040269,
+      "n_chars": 1850
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "page": 11,
+      "condition": "low contrast, JPEG 35, 150 dpi",
+      "ocr_used": true,
+      "ocr_confidence": 93.9,
+      "cer": 0.011891891891891892,
+      "wer": 0.026845637583892617,
+      "word_recall": 0.9899328859060402,
+      "n_chars": 1850
+    }
+  ],
+  "fallback": {
+    "scan_only_without_ocr": "rejected: No text could be extracted from this PDF (image-only PDF and OCR unavailable or empty). The document was not indexed.",
+    "mixed_without_ocr": {
+      "scanned_page_flagged": true,
+      "page_warning": "Image-only page: no text layer, OCR needed.",
+      "document_warning": "1 page(s) have no text layer and need OCR.",
+      "digital_page_indexed": true
+    }
+  }
+}

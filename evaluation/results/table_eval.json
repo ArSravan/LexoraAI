@@ -1,0 +1,200 @@
+{
+  "summary": {
+    "cases": 9,
+    "tables_expected": 10,
+    "tables_found": 8,
+    "detection_rate": 0.8,
+    "cell_accuracy_detected": 1.0,
+    "cell_accuracy_overall": 0.7861,
+    "cell_accuracy_ruled_cases": 1.0,
+    "captions_ok": 1,
+    "captions_expected": 1
+  },
+  "cases": [
+    {
+      "case": "plain grid, numbers",
+      "note": "",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 20,
+      "cells_expected": 20,
+      "detected_cells_right": 20,
+      "detected_cells_expected": 20,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 20,
+          "cells_expected": 20,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "legal table with caption",
+      "note": "the caption must be attached",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 12,
+      "cells_expected": 12,
+      "detected_cells_right": 12,
+      "detected_cells_expected": 12,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 12,
+          "cells_expected": 12,
+          "caption_ok": true
+        }
+      ]
+    },
+    {
+      "case": "header spanning three columns",
+      "note": "",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 10,
+      "cells_expected": 10,
+      "detected_cells_right": 10,
+      "detected_cells_expected": 10,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 10,
+          "cells_expected": 10,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "label spanning rows",
+      "note": "",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 13,
+      "cells_expected": 13,
+      "detected_cells_right": 13,
+      "detected_cells_expected": 13,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 13,
+          "cells_expected": 13,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "wrapped multi-line cells",
+      "note": "",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 6,
+      "cells_expected": 6,
+      "detected_cells_right": 6,
+      "detected_cells_expected": 6,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 6,
+          "cells_expected": 6,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "two tables on one page",
+      "note": "",
+      "tables_expected": 2,
+      "tables_found": 2,
+      "cells_right": 21,
+      "cells_expected": 21,
+      "detected_cells_right": 21,
+      "detected_cells_expected": 21,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 12,
+          "cells_expected": 12,
+          "caption_ok": null
+        },
+        {
+          "detected": true,
+          "cells_right": 9,
+          "cells_expected": 9,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "long table, 12 rows",
+      "note": "",
+      "tables_expected": 1,
+      "tables_found": 1,
+      "cells_right": 65,
+      "cells_expected": 65,
+      "detected_cells_right": 65,
+      "detected_cells_expected": 65,
+      "tables": [
+        {
+          "detected": true,
+          "cells_right": 65,
+          "cells_expected": 65,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "horizontal rules only (not expected to work)",
+      "note": "a table typeset with horizontal lines only has no column lines to read",
+      "tables_expected": 1,
+      "tables_found": 0,
+      "cells_right": 0,
+      "cells_expected": 20,
+      "detected_cells_right": 0,
+      "detected_cells_expected": 0,
+      "tables": [
+        {
+          "detected": false,
+          "cells_right": 0,
+          "cells_expected": 20,
+          "caption_ok": null
+        }
+      ]
+    },
+    {
+      "case": "no ruling lines (not expected to work)",
+      "note": "the extractor only reads tables drawn with lines; this is the documented limit",
+      "tables_expected": 1,
+      "tables_found": 0,
+      "cells_right": 0,
+      "cells_expected": 20,
+      "detected_cells_right": 0,
+      "detected_cells_expected": 0,
+      "tables": [
+        {
+          "detected": false,
+          "cells_right": 0,
+          "cells_expected": 20,
+          "caption_ok": null
+        }
+      ]
+    }
+  ],
+  "real_documents": [
+    {
+      "document": "Data_Act_2023_2854.pdf",
+      "pages": 71,
+      "tables_found": 0
+    },
+    {
+      "document": "GDPR_Regulation_2016_679.pdf",
+      "pages": 88,
+      "tables_found": 0
+    },
+    {
+      "document": "ePrivacy_Directive_2002_58.pdf",
+      "pages": 11,
+      "tables_found": 0
+    }
+  ]
+}

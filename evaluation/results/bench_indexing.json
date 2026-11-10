@@ -1,0 +1,12 @@
+{
+  "document": "ePrivacy_Directive_2002_58.pdf",
+  "pages": 11,
+  "chunks": 128,
+  "parse_s": 1.21,
+  "chunk_s": 0.01,
+  "embed_cold_s": 10.529,
+  "embed_warm_s": 0.002,
+  "embed_speedup": 5048.6,
+  "index_with_warm_cache_s": 0.29,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2"
+}
