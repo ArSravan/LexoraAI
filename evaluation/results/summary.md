@@ -1,14 +1,14 @@
-Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
+Run 2026-11-10 22:32:14 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions (11 answerable).
 
 ### Retrieval (answerable questions)
 
 | Configuration | recall@1 | recall@3 | recall@5 | full@5 | precision@5 | mrr | latency_ms |
 |---|---|---|---|---|---|---|---|
-| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 22 |
-| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 816 |
-| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 16 |
-| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 481 |
-| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 1131 |
+| BM25 only | 0.55 | 0.73 | 0.85 | 0.73 | 0.27 | 0.75 | 20 |
+| Dense only | 0.36 | 0.55 | 0.59 | 0.45 | 0.18 | 0.51 | 979 |
+| Hybrid (BM25 + dense, RRF) | 0.59 | 0.64 | 0.88 | 0.73 | 0.27 | 0.82 | 15 |
+| Hybrid + rerank | 0.59 | 0.76 | 0.83 | 0.73 | 0.27 | 0.76 | 468 |
+| Hybrid + rerank + query decomposition | 0.59 | 0.85 | 0.89 | 0.82 | 0.31 | 0.82 | 976 |
 
 `recall@k` = share of the required evidence items (document + clause) in the top k; `full@k` = share of questions whose evidence is ALL in the top k (strict for multi-hop).
 
@@ -27,21 +27,35 @@ Run 2026-11-08 22:31:38 UTC - model `qwen3.5:9b`, seed 42, 15 held-out questions
 
 ### Generation
 
-| | no_retrieval | hybrid |
-|---|---|---|
-| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.73 |
-| Citations verified by the validator | - | 0.96 |
-| Citation precision vs labelled evidence | - | 0.75 |
-| Abstention accuracy (all questions) | 0.73 | 0.93 |
-| False-abstention rate (answerable refused) | 0.00 | 0.09 |
-| Correct-abstention rate (unanswerable refused) | 0.00 | 1.00 |
-| Mean retrieval + rerank time (s) | 0.00 | 0.95 |
-| Mean generation time (s) | 16.05 | 69.04 |
-| Mean total time (s) | 16.10 | 70.05 |
-| Mean completion tokens | 95 | 447 |
-| Answers that failed with an error | 0 | 0 |
+| | no_retrieval | hybrid | hybrid_noverify |
+|---|---|---|---|
+| Answer correct, automatic key-fact PROXY (answerable) | 0.55 | 0.73 | 0.73 |
+| Citations verified by the validator | - | 0.96 | 0.96 |
+| Citation precision vs labelled evidence | - | 0.75 | 0.75 |
+| Claims shown that the validator does not verify | - | 0.00 | 0.00 |
+| Answers shown with at least one such claim | - | 0.00 | 0.00 |
+| Abstention accuracy (all questions) | 0.73 | 0.93 | 0.93 |
+| False-abstention rate (answerable refused) | 0.00 | 0.09 | 0.09 |
+| Correct-abstention rate (unanswerable refused) | 0.00 | 1.00 | 1.00 |
+| Mean retrieval + rerank time (s) | 0.00 | 0.93 | 0.91 |
+| Mean generation time (s) | 16.05 | 69.62 | 67.14 |
+| Mean total time (s) | 16.10 | 70.61 | 68.12 |
+| Mean completion tokens | 95 | 447 | 447 |
+| Answers that failed with an error | 0 | 0 | 0 |
 
 The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.
+
+### Citation precision at region level
+
+Configuration `hybrid`, 28 emitted citations. A citation is a REGION hit when the quote it points at lies inside the labelled clause on the page (see `evaluation/region_eval.py`).
+
+| Measure | Value |
+|---|---|
+| Quote found on the cited page (can be drawn) | 1.00 |
+| Page-level precision | 0.79 |
+| Region-level precision | 0.75 |
+| Region-level precision, of the located quotes | 0.75 |
+| Citations on the right page but outside the labelled region | 1 |
 
 ### Manual grades
 

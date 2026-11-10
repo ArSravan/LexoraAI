@@ -1,12 +1,16 @@
 {
   "meta": {
-    "date": "2026-11-08 22:31:38 UTC",
-    "git_commit": "8ba68d5",
+    "date": "2026-11-10 22:32:14 UTC",
+    "git_commit": "fd622ee",
     "n_questions": 15,
     "n_answerable": 11,
     "dataset": "dataset.json",
     "dataset_sha256": "7fdc02b84a9c2f45501c7d5e87153b8cfdd8deca6feffe5e078582833a33966c",
     "documents": [
+      {
+        "name": "Data_Act_2023_2854.pdf",
+        "sha256": "0d100d513136adfaa5655d77784d3af00f477b8588471cbb51dea7aff8687838"
+      },
       {
         "name": "GDPR_Regulation_2016_679.pdf",
         "sha256": "bd84e63f5b622b739a83389afc3b30d240f792bb88d8eb03a816c9a82b0c2499"
@@ -14,10 +18,6 @@
       {
         "name": "ePrivacy_Directive_2002_58.pdf",
         "sha256": "081fa36ca2a4c7cb80d8eecae545568c7a65d74e7d98c6ad8c9060edf7c220ff"
-      },
-      {
-        "name": "Data_Act_2023_2854.pdf",
-        "sha256": "0d100d513136adfaa5655d77784d3af00f477b8588471cbb51dea7aff8687838"
       }
     ],
     "python": "3.12.10",
@@ -57,7 +57,7 @@
       "full@5": 0.7273,
       "precision@5": 0.2727,
       "mrr": 0.753,
-      "latency_ms": 22.1621
+      "latency_ms": 19.6457
     },
     "Dense only": {
       "recall@1": 0.3636,
@@ -66,7 +66,7 @@
       "full@5": 0.4545,
       "precision@5": 0.1818,
       "mrr": 0.5076,
-      "latency_ms": 815.5426
+      "latency_ms": 978.6539
     },
     "Hybrid (BM25 + dense, RRF)": {
       "recall@1": 0.5909,
@@ -75,7 +75,7 @@
       "full@5": 0.7273,
       "precision@5": 0.2727,
       "mrr": 0.8182,
-      "latency_ms": 16.4097
+      "latency_ms": 14.949
     },
     "Hybrid + rerank": {
       "recall@1": 0.5909,
@@ -84,7 +84,7 @@
       "full@5": 0.7273,
       "precision@5": 0.2727,
       "mrr": 0.7576,
-      "latency_ms": 481.215
+      "latency_ms": 468.2161
     },
     "Hybrid + rerank + query decomposition": {
       "recall@1": 0.5909,
@@ -93,7 +93,7 @@
       "full@5": 0.8182,
       "precision@5": 0.3091,
       "mrr": 0.8182,
-      "latency_ms": 1130.8456
+      "latency_ms": 975.9722
     }
   },
   "by_category": {
@@ -169,12 +169,15 @@
       "mean_prompt_tokens": 75,
       "mean_completion_tokens": 95,
       "n_errors": 0,
+      "unsupported_claim_rate": null,
+      "answers_with_unsupported_claim": null,
       "answerable_refusals_by_stage": {
         "gate": 0,
         "model": 0,
         "verifier": 0,
         "error": 0
-      }
+      },
+      "answerable_refused_ids": []
     },
     "hybrid": {
       "n": 15,
@@ -190,19 +193,66 @@
       "abstention_accuracy": 0.9333,
       "false_abstention_rate": 0.0909,
       "correct_abstention_rate": 1.0,
-      "mean_retrieval_s": 0.95,
-      "mean_generation_s": 69.04,
-      "mean_total_s": 70.05,
+      "mean_retrieval_s": 0.93,
+      "mean_generation_s": 69.62,
+      "mean_total_s": 70.61,
       "mean_prompt_tokens": 1048,
       "mean_completion_tokens": 447,
       "n_errors": 0,
+      "unsupported_claim_rate": 0.0,
+      "answers_with_unsupported_claim": 0.0,
       "answerable_refusals_by_stage": {
         "gate": 1,
         "model": 0,
         "verifier": 0,
         "error": 0
-      }
+      },
+      "answerable_refused_ids": [
+        "M1"
+      ]
+    },
+    "hybrid_noverify": {
+      "n": 15,
+      "n_answerable": 11,
+      "n_unanswerable": 4,
+      "answer_correct_proxy": 0.7273,
+      "answer_correct_proxy_by_category": {
+        "factual": 1.0,
+        "multihop": 0.4
+      },
+      "citations_verified_rate": 0.9643,
+      "citation_precision": 0.75,
+      "abstention_accuracy": 0.9333,
+      "false_abstention_rate": 0.0909,
+      "correct_abstention_rate": 1.0,
+      "mean_retrieval_s": 0.91,
+      "mean_generation_s": 67.14,
+      "mean_total_s": 68.12,
+      "mean_prompt_tokens": 1048,
+      "mean_completion_tokens": 447,
+      "n_errors": 0,
+      "unsupported_claim_rate": 0.0,
+      "answers_with_unsupported_claim": 0.0,
+      "answerable_refusals_by_stage": {
+        "gate": 1,
+        "model": 0,
+        "verifier": 0,
+        "error": 0
+      },
+      "answerable_refused_ids": [
+        "M1"
+      ]
     }
+  },
+  "region": {
+    "config": "hybrid",
+    "rows_without_detail": 0,
+    "n_citations": 28,
+    "located_rate": 1.0,
+    "page_precision": 0.7857,
+    "region_precision": 0.75,
+    "region_precision_of_located": 0.75,
+    "page_hits_outside_the_region": 1
   },
   "manual": {
     "grader": "Sravan",
