@@ -30,6 +30,16 @@ def get_client():
         return _clients[key]
 
 
+def close_clients() -> None:
+    """Release every open client so the storage folder can be deleted (Windows refuses to remove open files)."""
+    import gc
+    from chromadb.api.shared_system_client import SharedSystemClient
+    with _lock:
+        _clients.clear()
+        SharedSystemClient.clear_system_cache()      # stops chroma's internal system, which holds the index files
+    gc.collect()
+
+
 def collection_name(case_id: str) -> str:
     return f"case_{case_id}"
 
