@@ -65,3 +65,110 @@ def timing_caption(result: dict) -> str:
     if tok:
         parts.append(f"tokens {tok.get('prompt', 0)} in / {tok.get('completion', 0)} out")
     return " | ".join(parts)
+
+
+# ------------------------------------------------------------------------------ dashboard, evaluation and settings
+def _f(v, digits: int = 2) -> str:
+    return "-" if v is None else (f"{v:.{digits}f}" if isinstance(v, float) else str(v))
+
+
+def stat_rows(stats: dict) -> list[tuple[str, int]]:
+    return [("Cases", stats["cases"]), ("Documents indexed", stats["documents"]), ("Indexed chunks", stats["chunks"]),
+            ("Questions asked", stats["questions"]), ("Abstentions", stats["abstentions"])]
+
+
+def recent_rows(recent: list[dict]) -> list[dict]:
+    import time
+    return [{"When": time.strftime("%d %b %H:%M", time.localtime(r["created_at"])), "Question": r["question"][:110],
+             "Answer": r["confidence"], "Case": r.get("case_title") or "", "Mode": r["mode"], "Model": r["model"],
+             "Seconds": round(r["latency"], 1)} for r in recent]
+
+
+def settings_groups(rows: list[dict]) -> dict[str, list[dict]]:
+    """Group the flat settings list for display."""
+    groups = {"Storage and upload": ("storage_dir", "max_upload_mb", "max_docs_per_case", "seed"),
+              "Extraction, OCR, tables": ("scanned_min_chars", "ocr_enabled", "ocr_lang", "ocr_dpi", "tesseract_cmd", "tables_enabled"),
+              "Local language model": tuple(r["name"] for r in rows if r["name"].startswith("ollama_")),
+              "Retrieval": ("embedding_model", "embedding_batch_size", "reranker_model", "rerank_enabled", "retrieval_mode",
+                            "initial_top_k", "final_top_k", "rrf_k", "dense_min_similarity", "query_decomposition",
+                            "chunk_max_chars", "chunk_overlap"),
+              "Verification and abstention": ("quote_match_min", "abstain_rerank_min", "abstain_coverage_min", "high_conf_rerank",
+                                              "medium_conf_rerank", "verify_retries")}
+    by = {r["name"]: r for r in rows}
+    out = {g: [{"Setting": n, "Value": by[n]["value"], "Environment variable": by[n]["env"]} for n in names if n in by]
+           for g, names in groups.items()}
+    placed = {n for names in groups.values() for n in names}
+    rest = [r for r in rows if r["name"] not in placed]
+    if rest:
+        out["Other"] = [{"Setting": r["name"], "Value": r["value"], "Environment variable": r["env"]} for r in rest]
+    return {g: v for g, v in out.items() if v}
+
+
+def retrieval_rows(retrieval: dict) -> list[dict]:
+    cols = ["recall@1", "recall@3", "recall@5", "full@5", "precision@5", "mrr"]
+    return [{"Configuration": label, **{c: _f(m.get(c)) for c in cols}, "latency ms": f"{m.get('latency_ms', 0):.0f}"}
+            for label, m in retrieval.items()]
+
+
+GENERATION_LABELS = [("Answer correct, automatic key-fact proxy", "answer_correct_proxy"),
+                     ("Citations verified by the validator", "citations_verified_rate"),
+                     ("Citation precision vs labelled evidence", "citation_precision"),
+                     ("Claims shown that are not verified", "unsupported_claim_rate"),
+                     ("Abstention accuracy", "abstention_accuracy"), ("False-abstention rate", "false_abstention_rate"),
+                     ("Correct-abstention rate", "correct_abstention_rate"), ("Mean total time (s)", "mean_total_s"),
+                     ("Mean completion tokens", "mean_completion_tokens")]
+
+
+def generation_rows(generation: dict) -> list[dict]:
+    return [{"Measure": label, **{cfg: _f(g.get(key)) for cfg, g in generation.items()}} for label, key in GENERATION_LABELS]
+
+
+def manual_rows(manual: dict | None) -> list[dict]:
+    if not manual:
+        return []
+    keys = [("Answers graded", None), ("Answerable: mean score", "answerable_mean_score"),
+            ("Answerable: strictly correct", "answerable_strictly_correct"),
+            ("Unanswerable: handled correctly", "unanswerable_handled_correctly"), ("All questions: behaviour correct", "behaviour_correct_all")]
+    return [{"Measure": label, **{cfg: (f"{c['n_graded']} / {c['n_total']}" if key is None else _f(c[key]))
+                                  for cfg, c in manual["configs"].items()}} for label, key in keys]
+
+
+def region_rows(region: dict | None) -> list[dict]:
+    if not region or not region.get("n_citations"):
+        return []
+    return [{"Measure": m, "Value": _f(region.get(k))} for m, k in
+            [("Citations", "n_citations"), ("Quote found on the cited page", "located_rate"), ("Page-level precision", "page_precision"),
+             ("Region-level precision", "region_precision"), ("Region-level precision of located quotes", "region_precision_of_located")]]
+
+
+def ocr_rows(ocr: dict | None) -> list[dict]:
+    return [] if not ocr else [{"Condition": k, "Pages": v["pages"], "CER": _f(v["cer"], 3), "WER": _f(v["wer"], 3),
+                                "Word recall": _f(v["word_recall"], 3), "OCR confidence %": _f(v["ocr_confidence"], 1)}
+                               for k, v in ocr["summary"].items()]
+
+
+def table_eval_rows(tbl: dict | None) -> list[dict]:
+    return [] if not tbl else [{"Case": c["case"], "Tables found / expected": f"{c['tables_found']} / {c['tables_expected']}",
+                                "Cells right / expected": f"{c['cells_right']} / {c['cells_expected']}"} for c in tbl["cases"]]
+
+
+def anomaly_rows(ae: dict | None) -> list[dict]:
+    if not ae:
+        return []
+    k = str(ae["chosen_k"])
+    return [{"Defect": d["defect"], "AUROC autoencoder": _f(d["auroc_autoencoder"], 3), "AUROC baseline": _f(d["auroc_zscore"], 3),
+             "Detected": f"{d['detected'][k]:.0%}", "False alarms on intact pages": f"{d['false_alarms_on_intact_pages'][k]:.1%}"}
+            for d in ae["defects"]]
+
+
+def ablation_rows(abl: dict | None) -> list[dict]:
+    if not abl:
+        return []
+    return [{"Search": mode, "Index": label, **{c: _f(m[c]) for c in ("recall@1", "recall@3", "recall@5", "mrr")}}
+            for mode, by in abl["modes"].items() for label, m in by.items()]
+
+
+def latency_rows(lat: dict | None) -> list[dict]:
+    return [] if not lat else [{"Configuration": c, "Questions": v["n"], "Mean s": v["total_s_mean"], "Median s": v["total_s_median"],
+                                "95th pct s": v["total_s_p95"], "Generation s": v["generation_s_mean"],
+                                "Completion tokens": v["completion_tokens_mean"]} for c, v in lat["configs"].items()]

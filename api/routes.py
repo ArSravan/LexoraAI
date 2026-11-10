@@ -5,14 +5,16 @@ import json
 import queue
 import shutil
 import threading
+from dataclasses import fields
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from config import get_settings
+from config import ENV_PREFIX, Settings, get_settings
 from generation.answer_generator import AnswerService
 from generation.ollama_client import OllamaClient
 from ingestion import ocr as ocr_mod
@@ -79,6 +81,31 @@ def status():
 @router.get("/stats")
 def stats():
     return db.stats()
+
+
+@router.get("/settings")
+def effective_settings():
+    """The settings the application is running with, and the environment variable that changes each one (read-only)."""
+    s = get_settings()
+    return [{"name": f.name, "env": ENV_PREFIX + f.name.upper(), "value": str(getattr(s, f.name))} for f in fields(Settings)]
+
+
+EVAL_RESULTS = Path(__file__).resolve().parents[1] / "evaluation" / "results"
+EVAL_FILES = ("summary.json", "calibration.json", "ocr_eval.json", "table_eval.json", "page_anomaly_eval.json",
+              "ablation_tables.json", "latency_report.json", "bench_indexing.json")
+
+
+@router.get("/evaluation")
+def evaluation_results():
+    """The result files of the evaluation scripts that exist (a fixed list of names, never a path from the client)."""
+    out = {}
+    for name in EVAL_FILES:
+        f = EVAL_RESULTS / name
+        try:
+            out[name.removesuffix(".json")] = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
+        except ValueError:
+            out[name.removesuffix(".json")] = None           # a half-written file is treated as absent
+    return out
 
 
 # ------------------------------------------------------------------ cases

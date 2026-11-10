@@ -4,7 +4,7 @@ import streamlit as st
 st.set_page_config(page_title="Lexora AI", page_icon="⚖️", layout="wide", initial_sidebar_state="expanded")
 
 from frontend import api  # noqa: E402
-from frontend.views import cases, chat  # noqa: E402
+from frontend.views import cases, chat, dashboard, evaluation, settings  # noqa: E402
 
 with st.sidebar:
     st.markdown("## ⚖️ Lexora AI")
@@ -13,6 +13,9 @@ with st.sidebar:
 nav = st.navigation([
     st.Page(cases.render, title="Cases and documents", icon="🗂️", url_path="cases", default=True),
     st.Page(chat.render, title="Ask", icon="💬", url_path="ask"),
+    st.Page(dashboard.render, title="Dashboard", icon="📊", url_path="dashboard"),
+    st.Page(evaluation.render, title="Evaluation", icon="🧪", url_path="evaluation"),
+    st.Page(settings.render, title="Settings", icon="⚙️", url_path="settings"),
 ])
 
 with st.sidebar:
