@@ -360,10 +360,11 @@ the folder can have any name. `storage/` (uploaded files, indexes, database) and
 │
 ├── sample_docs/                   # Public EU evaluation documents
 │
-├── storage/                       # Runtime data (not source code)
-│   ├── uploads/
-│   ├── indexes/
-│   └── database/
+├── storage/                       # Runtime data, created on first use (not source code, not committed)
+│   ├── cases/                     # per case: uploaded PDFs, extracted text, chunks.json
+│   ├── chroma/                    # ChromaDB vectors
+│   ├── cache/                     # embedding cache (SQLite)
+│   └── lexora.db                  # cases, documents, question log
 │
 ├── .env                           # Local environment configuration
 ├── .env.example                   # Configuration template

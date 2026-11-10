@@ -71,6 +71,9 @@ def _readme() -> str:
     return (ROOT / "README.md").read_text(encoding="utf-8")
 
 
+RUNTIME_ONLY = {"storage", ".env"}
+
+
 def test_every_path_in_the_project_layout_exists():
     block = re.search(r"## Project layout.*?```text\n(.*?)```", _readme(), re.S).group(1)
     paths, stack = [], []
@@ -80,9 +83,9 @@ def test_every_path_in_the_project_layout_exists():
             continue
         depth = len(m.group(1)) // 4
         stack[depth:] = [m.group(2).rstrip("/")]
-        if stack[0] != "storage" or len(stack) == 1:  # storage/ contents are created at runtime
+        if stack[0] not in RUNTIME_ONLY:               # storage/ and .env are created on first use and are not committed
             paths.append("/".join(stack))
-    assert len(paths) >= 40
+    assert len(paths) >= 40 and "storage" not in paths
     for p in paths:
         assert (ROOT / p).exists(), f"README layout lists {p}, which does not exist"
 
