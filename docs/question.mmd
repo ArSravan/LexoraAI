@@ -1,4 +1,4 @@
-flowchart TB
+flowchart LR
     q(["Question"]) --> dec["Query decomposition<br/>compound question to sub-queries"]
     dec --> bm["BM25<br/>clause-number-aware"]
     dec --> de["Dense search<br/>MiniLM + ChromaDB"]

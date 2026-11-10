@@ -1,8 +1,8 @@
-flowchart TB
-    user(["User"]) --> ui["<b>Streamlit UI</b>  frontend/<br/>Cases and documents  |  Ask"]
-    ui -- "HTTP" --> api["<b>FastAPI</b>  api/<br/>upload validation  |  ask and ask/stream (NDJSON)  |  evidence page images"]
-    api --> indexing["<b>Indexing pipeline</b>  ingestion/  services/<br/>extract, OCR, tables, structure, chunks, embeddings"]
-    api --> qa["<b>Question pipeline</b>  retrieval/  generation/  verification/<br/>retrieve, gate, generate, verify"]
-    indexing --> store[("<b>Local storage</b>  storage/<br/>ChromaDB vectors  |  chunks.json for BM25<br/>SQLite: cases, documents, qa_log, embedding cache<br/>uploaded PDFs + meta.json")]
+flowchart LR
+    user(["User"]) --> ui["<b>Streamlit UI</b><br/>frontend/<br/>Cases and documents | Ask"]
+    ui -- "HTTP" --> api["<b>FastAPI</b><br/>api/<br/>upload validation | ask and ask/stream (NDJSON) | evidence page images"]
+    api --> indexing["<b>Indexing pipeline</b><br/>ingestion/ services/<br/>extract, OCR, tables, structure, chunks, embeddings"]
+    api --> qa["<b>Question pipeline</b><br/>retrieval/ generation/ verification/<br/>retrieve, gate, generate, verify"]
+    indexing --> store[("<b>Local storage</b><br/>storage/<br/>ChromaDB vectors | chunks.json for BM25<br/>SQLite: cases, documents, qa_log, embedding cache<br/>uploaded PDFs + meta.json")]
     qa <--> store
     qa <--> llm["<b>Ollama</b> qwen3.5:9b<br/>runs locally, nothing leaves the machine"]

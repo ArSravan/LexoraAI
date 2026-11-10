@@ -9,12 +9,12 @@ Pictures: [overview.png](overview.png), [indexing.png](indexing.png), [question.
 ## 1. Overview
 
 ```mermaid
-flowchart TB
-    user(["User"]) --> ui["<b>Streamlit UI</b>  frontend/<br/>Cases and documents  |  Ask"]
-    ui -- "HTTP" --> api["<b>FastAPI</b>  api/<br/>upload validation  |  ask and ask/stream (NDJSON)  |  evidence page images"]
-    api --> indexing["<b>Indexing pipeline</b>  ingestion/  services/<br/>extract, OCR, tables, structure, chunks, embeddings"]
-    api --> qa["<b>Question pipeline</b>  retrieval/  generation/  verification/<br/>retrieve, gate, generate, verify"]
-    indexing --> store[("<b>Local storage</b>  storage/<br/>ChromaDB vectors  |  chunks.json for BM25<br/>SQLite: cases, documents, qa_log, embedding cache<br/>uploaded PDFs + meta.json")]
+flowchart LR
+    user(["User"]) --> ui["<b>Streamlit UI</b><br/>frontend/<br/>Cases and documents | Ask"]
+    ui -- "HTTP" --> api["<b>FastAPI</b><br/>api/<br/>upload validation | ask and ask/stream (NDJSON) | evidence page images"]
+    api --> indexing["<b>Indexing pipeline</b><br/>ingestion/ services/<br/>extract, OCR, tables, structure, chunks, embeddings"]
+    api --> qa["<b>Question pipeline</b><br/>retrieval/ generation/ verification/<br/>retrieve, gate, generate, verify"]
+    indexing --> store[("<b>Local storage</b><br/>storage/<br/>ChromaDB vectors | chunks.json for BM25<br/>SQLite: cases, documents, qa_log, embedding cache<br/>uploaded PDFs + meta.json")]
     qa <--> store
     qa <--> llm["<b>Ollama</b> qwen3.5:9b<br/>runs locally, nothing leaves the machine"]
 ```
@@ -22,7 +22,7 @@ flowchart TB
 ## 2. Indexing: from a PDF to searchable, citable chunks
 
 ```mermaid
-flowchart TB
+flowchart LR
     pdf["PDF upload"] --> val["Validate<br/>.pdf name, %PDF header, size,<br/>not encrypted, not a duplicate"]
     val --> ext["Extract text - PyMuPDF<br/>every line keeps page_index and bbox"]
     ext --> clean["Clean<br/>two-column reading order,<br/>header and footer removal, footnotes"]
@@ -44,7 +44,7 @@ clause and lets the UI draw the quote on the page image.
 ## 3. Answering: retrieve, gate, generate, verify
 
 ```mermaid
-flowchart TB
+flowchart LR
     q(["Question"]) --> dec["Query decomposition<br/>compound question to sub-queries"]
     dec --> bm["BM25<br/>clause-number-aware"]
     dec --> de["Dense search<br/>MiniLM + ChromaDB"]
@@ -78,7 +78,11 @@ flowchart TB
 | Citation validation | `verification/citation_validator.py` | six checks per citation |
 | Conflicts, numeric comparison | `verification/conflict_detector.py` | heuristic |
 | Background jobs, storage | `services/jobs.py`, `services/indexer.py`, `services/db.py` | progress bar in the UI |
-| Evaluation | `evaluation/` | held-out set, dev set, metrics, grading, calibration |
+| Unusual-page detection | `ingestion/page_anomaly.py` | autoencoder fitted on the document's own pages; flags in the Cases page |
+| Dashboard, Evaluation, Settings pages | `frontend/views/dashboard.py`, `frontend/views/evaluation.py`, `frontend/views/settings.py` | read the API; nothing is computed in the browser |
+| Evaluation | `evaluation/evaluate.py` | held-out set, dev set, metrics, grading, calibration |
+| Extended-feature evaluations | `evaluation/ocr_eval.py`, `evaluation/table_eval.py`, `evaluation/page_anomaly_eval.py`, `evaluation/region_eval.py` | each writes a Markdown and a JSON result |
+| Results page | `evaluation/report.py` | builds docs/RESULTS.md and the README results block from the result files |
 
 ## Design decisions and why
 
@@ -92,3 +96,6 @@ flowchart TB
 | Confidence computed from the checks | the model's own confidence is not evidence |
 | Passages marked as untrusted data | text inside a PDF must not be able to give instructions to the model |
 | Everything local | legal documents are confidential; also works offline |
+| The autoencoder is fitted per document, not in advance | a model trained on other documents flagged most pages of a differently laid-out document (measured in `evaluation/page_anomaly_eval.py`) |
+| Results are generated into the documentation | a number typed into a README goes stale when the evaluation is run again; `evaluation/report.py` rebuilds the page and the README block |
+| The container runs as an unprivileged user and publishes its ports on 127.0.0.1 only | confidential documents must not be reachable from the network |

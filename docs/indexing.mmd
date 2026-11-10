@@ -1,4 +1,4 @@
-flowchart TB
+flowchart LR
     pdf["PDF upload"] --> val["Validate<br/>.pdf name, %PDF header, size,<br/>not encrypted, not a duplicate"]
     val --> ext["Extract text - PyMuPDF<br/>every line keeps page_index and bbox"]
     ext --> clean["Clean<br/>two-column reading order,<br/>header and footer removal, footnotes"]
