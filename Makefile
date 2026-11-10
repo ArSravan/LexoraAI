@@ -44,3 +44,21 @@ docker-down:  ## stop the container (the data volume is kept)
 
 docker-smoke:  ## test the running container end to end (add ARGS=--with-llm to also ask a grounded question)
 	$(PY) -m scripts.smoke_test $(ARGS)
+
+eval:  ## the main evaluation: retrieval and answers incl. the verifier ablation (needs Ollama, about an hour; resumable)
+	$(PY) -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybrid hybrid_noverify --refresh-citations --export-grading
+
+extended:  ## the extended-feature evaluations (no LLM: OCR, tables, autoencoder, table ablation, gate diagnostics, cache benchmark)
+	$(PY) -m evaluation.ocr_eval sample_docs/*.pdf
+	$(PY) -m evaluation.table_eval sample_docs/*.pdf
+	$(PY) -m evaluation.page_anomaly_eval sample_docs/*.pdf
+	$(PY) -m evaluation.ablation_tables
+	$(PY) -m evaluation.diagnostics sample_docs/*.pdf
+	$(PY) -m evaluation.bench_indexing sample_docs/ePrivacy_Directive_2002_58.pdf
+	$(PY) -m evaluation.latency_report
+
+report:  ## write docs/RESULTS.md and the results block of the README from evaluation/results
+	$(PY) -m evaluation.report
+
+check:  ## is the repository ready to hand in? (pins, placeholders, results, unpushed commits)
+	$(PY) -m scripts.check_submission
