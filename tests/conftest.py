@@ -11,6 +11,13 @@ from reportlab.pdfgen import canvas
 from config import get_settings
 from schemas import Chunk
 
+import sys
+
+if sys.platform == "win32":
+    # Windows' C runtime allows only 512 open files by default; a long test run exhausts it and pymupdf then
+    # fails with "Failed to open file" on perfectly valid PDFs.
+    import ctypes
+    ctypes.CDLL("ucrtbase")._setmaxstdio(4096)
 
 @pytest.fixture(autouse=True)
 def isolated_storage(tmp_path, monkeypatch):

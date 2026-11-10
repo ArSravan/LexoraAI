@@ -112,9 +112,13 @@ class AnswerService:
     def answer(self, case_id: str, question: str, mode: str | None = None, model: str | None = None,
                rerank: bool | None = None, use_retrieval: bool = True, final_k: int | None = None,
                on_token: Callable[[str], None] | None = None,
-               on_status: Callable[[str], None] | None = None) -> AnswerResult:
-        """Answer one question about a case and record it in the question log."""
-        res = self._answer(case_id, question, mode, model, rerank, use_retrieval, final_k, on_token, on_status)
+               on_status: Callable[[str], None] | None = None, verify: bool = True) -> AnswerResult:
+        """Answer one question about a case and record it in the question log.
+
+        ``verify=False`` is the ablation "without the verifier": the first draft is shown as it is, with no retry and no
+        refusal when no citation checks out. The citations are still checked, so their status can be reported, but
+        nothing is done about a failure. It exists to measure what the verifier contributes, not for normal use."""
+        res = self._answer(case_id, question, mode, model, rerank, use_retrieval, final_k, on_token, on_status, verify)
         try:
             db.log_qa(res.case_id, res.question, res.abstained, res.confidence, res.mode, res.model,
                       res.timings.get("total_s", 0.0))
@@ -123,7 +127,7 @@ class AnswerService:
         return res
 
     def _answer(self, case_id: str, question: str, mode: str | None, model: str | None, rerank: bool | None,
-                use_retrieval: bool, final_k: int | None, on_token, on_status) -> AnswerResult:
+                use_retrieval: bool, final_k: int | None, on_token, on_status, verify: bool = True) -> AnswerResult:
         s = get_settings()
         status = on_status or (lambda m: None)
         mode = mode or s.retrieval_mode
@@ -162,19 +166,22 @@ class AnswerService:
             verified: list[VerifiedClaim] = []
             llm: LLMAnswer | None = None
             tokens = {"prompt": 0, "completion": 0}
-            for attempt in range(s.verify_retries + 1):
+            retries = s.verify_retries if verify else 0
+            for attempt in range(retries + 1):
                 llm, info = self._generate(messages, on_token)
                 tokens = {k: tokens[k] + info[k] for k in tokens}
                 if llm.abstained:
                     break
                 status("Verifying citations")
                 verified = citation_validator.validate_answer(llm, hits, docs, s.quote_match_min)
+                if not verify:
+                    break                                   # ablation: report the checks, act on none of them
                 problems = [f"Claim '{c.claim[:80]}': " + ("; ".join(n for e in c.evidence for n in e.notes)
                                                           or "no citation given")
                             for c in verified if c.status != "VERIFIED"]
                 if not problems and verified:
                     break
-                if attempt < s.verify_retries:      # tell the model exactly what the verifier rejected
+                if attempt < retries:               # tell the model exactly what the verifier rejected
                     res.retry_log.append(f"Attempt {attempt + 1} rejected by the verifier: " + " | ".join(problems)[:600])
                     messages = messages + [{"role": "assistant", "content": info["raw"][:3000]},
                                            {"role": "user", "content": prompts.build_feedback_prompt(
@@ -186,7 +193,7 @@ class AnswerService:
             if llm is None or llm.abstained:
                 return self._abstain(res, question, hits, names, suff, t_start,
                                      ["The model found that the passages do not answer the question."])
-            if not any(c.status == "VERIFIED" for c in verified):
+            if verify and not any(c.status == "VERIFIED" for c in verified):
                 out = self._abstain(res, question, hits, names, suff, t_start,
                                     ["The generated answer could not be grounded: none of its citations passed verification."])
                 out.abstention["draft_rejected"] = llm.answer       # shown for transparency, never as the answer

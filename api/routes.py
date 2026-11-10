@@ -250,6 +250,7 @@ class AskIn(BaseModel):
     rerank: bool | None = None                  # None = use the setting
     use_retrieval: bool = True                  # False = the no-retrieval baseline (ungrounded)
     final_k: int | None = Field(default=None, ge=1, le=20)
+    verify: bool = True                         # False = the "no verifier" ablation (shows the first draft unchecked)
 
 
 def answer_service() -> AnswerService:
@@ -268,7 +269,7 @@ def ask(case_id: str, body: AskIn):
     """Answer a question about the case's documents: the complete AnswerResult as JSON."""
     _require_indexed(case_id, body)
     res = answer_service().answer(case_id, body.question, body.mode, body.model, body.rerank,
-                                  body.use_retrieval, body.final_k)
+                                  body.use_retrieval, body.final_k, verify=body.verify)
     return res.model_dump()
 
 
@@ -284,7 +285,7 @@ def ask_stream(case_id: str, body: AskIn):
             res = answer_service().answer(
                 case_id, body.question, body.mode, body.model, body.rerank, body.use_retrieval, body.final_k,
                 on_token=lambda t: q.put({"type": "token", "text": t}),
-                on_status=lambda m: q.put({"type": "status", "text": m}))
+                on_status=lambda m: q.put({"type": "status", "text": m}), verify=body.verify)
             q.put({"type": "result", "result": res.model_dump()})
         except Exception as e:  # noqa: BLE001 - the client must always get a final line
             q.put({"type": "error", "text": str(e)})

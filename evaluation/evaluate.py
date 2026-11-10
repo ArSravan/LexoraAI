@@ -24,7 +24,7 @@ from statistics import mean
 from typing import Callable
 
 from config import ROOT, get_settings
-from evaluation import grading
+from evaluation import grading, region_eval
 from evaluation.dataset import EVAL_DIR, TEST_SET, EvalQuestion, load_dataset
 from evaluation.metrics import (abstention_stats, aggregate, answer_correct_proxy, citation_counts,
                                          citation_precision)
@@ -40,7 +40,10 @@ GEN_CONFIGS: dict[str, dict] = {
     "bm25": {"use_retrieval": True, "mode": "bm25", "rerank": True},
     "dense": {"use_retrieval": True, "mode": "dense", "rerank": True},
     "hybrid": {"use_retrieval": True, "mode": "hybrid", "rerank": True},
+    # the ablation "without the verifier": the first draft is shown unchecked (see AnswerService.answer, verify=False)
+    "hybrid_noverify": {"use_retrieval": True, "mode": "hybrid", "rerank": True, "verify": False},
 }
+ABLATION_CONFIGS = {"hybrid_noverify"}      # measured automatically only: never part of the hand-graded sheet
 
 
 # ------------------------------------------------------------------------------ cache of LLM answers
@@ -84,9 +87,24 @@ class GenCache:
 
 
 # ------------------------------------------------------------------------------ generation
+def citation_details(res: dict) -> list[dict]:
+    """Every emitted citation as {document, page, clause, quote, status}. The document is taken from the passage the
+    verifier matched (the real file name) when there is one, otherwise from what the model wrote."""
+    passages = {h["chunk"]["chunk_id"]: h["chunk"] for h in res.get("retrieved", [])}
+    out = []
+    for claim in res["claims"]:
+        for ev in claim["evidence"]:
+            ref, src = ev["ref"], passages.get(ev.get("matched_chunk_id") or "")
+            out.append({"document": src["document_name"] if src else ref["document"],
+                        "page": ref["page"] or (src["page_number"] if src else None), "clause": ref["clause"],
+                        "quote": ref["supporting_text"][:400], "status": ev["status"]})
+    return out
+
+
 def generation_row(q: EvalQuestion, config: str, res: dict) -> dict:
     """One row per (question, configuration), measured against the labels."""
     verified, emitted = citation_counts(res["claims"])
+    shown = [] if res["abstained"] else res["claims"]
     gold, _ = citation_precision(res["claims"], q.evidence_dicts())
     t, tok = res["timings"], res.get("tokens") or {}
     abstention = res.get("abstention") or {}
@@ -109,11 +127,14 @@ def generation_row(q: EvalQuestion, config: str, res: dict) -> dict:
         "retries": len(res["retry_log"]), "error": res["error"], "refusal_stage": stage,
         "refusal_reason": " | ".join(reasons)[:300], "verifier_note": (res["retry_log"][0] if res["retry_log"] else "")[:300],
         "rejected_draft": (abstention.get("draft_rejected") or "")[:200],
+        "claims_shown": len(shown), "unsupported_shown": sum(1 for c in shown if c["status"] != "VERIFIED"),
+        "citations": citation_details(res),
     }
 
 
 def run_generation(case_id: str, questions: list[EvalQuestion], configs: list[str], service, cache: GenCache,
-                   fresh: bool = False, log: Callable[[str], None] = lambda m: None) -> list[dict]:
+                   fresh: bool = False, log: Callable[[str], None] = lambda m: None,
+                   refresh_citations: bool = False) -> list[dict]:
     """Answer every question under every configuration (cached answers are reused unless ``fresh``)."""
     rows, total, n = [], len(configs) * len(questions), 0
     for config in configs:
@@ -124,9 +145,12 @@ def run_generation(case_id: str, questions: list[EvalQuestion], configs: list[st
             row = None if fresh else cache.rows.get(key)
             if row is not None and row["error"]:                  # a failure is not an answer: ask again
                 row = None
+            if row is not None and refresh_citations and opts["use_retrieval"] and "citations" not in row:
+                row = None                                        # cached before citation detail was stored
             if row is None:
+                extra = {"verify": False} if opts.get("verify") is False else {}
                 res = service.answer(case_id, q.question, opts.get("mode"), None, opts.get("rerank"),
-                                     opts["use_retrieval"]).model_dump()
+                                     opts["use_retrieval"], **extra).model_dump()
                 row = generation_row(q, config, res)
                 if not row["error"]:
                     cache.put(key, row)
@@ -160,8 +184,13 @@ def summarize_generation(rows: list[dict]) -> dict[str, dict]:
             "mean_prompt_tokens": round(mean(r["prompt_tokens"] for r in rs)),
             "mean_completion_tokens": round(mean(r["completion_tokens"] for r in rs)),
             "n_errors": sum(1 for r in rs if r["error"]),
+            "unsupported_claim_rate": (round(sum(r.get("unsupported_shown", 0) for r in rs) / n_shown, 4)
+                                       if (n_shown := sum(r.get("claims_shown", 0) for r in rs)) else None),
+            "answers_with_unsupported_claim": (round(sum(1 for r in answered if r.get("unsupported_shown", 0)) / len(answered), 4)
+                                               if (answered := [r for r in rs if not r["abstained"] and r.get("claims_shown", 0)]) else None),
             "answerable_refusals_by_stage": {st: sum(1 for r in ans if r.get("refusal_stage", "") == st)
                                  for st in ("gate", "model", "verifier", "error")},
+            "answerable_refused_ids": [r["id"] for r in ans if r["abstained"]],
         }
     return out
 
@@ -189,7 +218,8 @@ def _fmt(v) -> str:
     return "-" if v is None else (f"{v:.2f}" if isinstance(v, float) else str(v))
 
 
-def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: dict, manual: dict | None = None) -> str:
+def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: dict, manual: dict | None = None,
+                    region: dict | None = None) -> str:
     out = [f"Run {meta['date']} - model `{meta['ollama_model']}`, seed {meta['seed']}, "
            f"{meta['n_questions']} held-out questions ({meta['n_answerable']} answerable).", ""]
     if retrieval:
@@ -209,6 +239,8 @@ def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: 
         rows = [("Answer correct, automatic key-fact PROXY (answerable)", "answer_correct_proxy"),
                 ("Citations verified by the validator", "citations_verified_rate"),
                 ("Citation precision vs labelled evidence", "citation_precision"),
+                ("Claims shown that the validator does not verify", "unsupported_claim_rate"),
+                ("Answers shown with at least one such claim", "answers_with_unsupported_claim"),
                 ("Abstention accuracy (all questions)", "abstention_accuracy"),
                 ("False-abstention rate (answerable refused)", "false_abstention_rate"),
                 ("Correct-abstention rate (unanswerable refused)", "correct_abstention_rate"),
@@ -227,6 +259,16 @@ def markdown_report(meta: dict, retrieval: dict, by_category: dict, generation: 
                         "before using these numbers."]
         out += ["", "The correctness row is an AUTOMATIC proxy (every key fact occurs in the answer); it misses paraphrases. "
                 "It is not a human judgement. Grade the answers yourself with `--export-grading` / `--apply-grades`.", ""]
+    if region and region.get("n_citations"):
+        out += ["### Citation precision at region level", "",
+                f"Configuration `{region['config']}`, {region['n_citations']} emitted citations. A citation is a REGION hit when the quote "
+                "it points at lies inside the labelled clause on the page (see `evaluation/region_eval.py`).", "",
+                "| Measure | Value |", "|---|---|",
+                f"| Quote found on the cited page (can be drawn) | {_fmt(region['located_rate'])} |",
+                f"| Page-level precision | {_fmt(region['page_precision'])} |",
+                f"| Region-level precision | {_fmt(region['region_precision'])} |",
+                f"| Region-level precision, of the located quotes | {_fmt(region['region_precision_of_located'])} |",
+                f"| Citations on the right page but outside the labelled region | {region['page_hits_outside_the_region']} |", ""]
     if manual:
         names = list(manual["configs"])
         rows = [("Answers graded", None), ("Answerable: mean score (1 / 0.5 / 0)", "answerable_mean_score"),
@@ -293,6 +335,8 @@ def main(argv: list[str] | None = None, service=None) -> int:
     ap.add_argument("--gen-configs", nargs="+", choices=list(GEN_CONFIGS), default=["no_retrieval", "hybrid"])
     ap.add_argument("--limit", type=int, help="only the first N questions (for a quick trial)")
     ap.add_argument("--fresh", action="store_true", help="ignore cached answers")
+    ap.add_argument("--refresh-citations", action="store_true",
+                    help="ask again the cached retrieval answers that were stored without citation detail")
     ap.add_argument("--export-grading", nargs="?", const="", metavar="CSV",
                     help="write a sheet to grade the answers by hand (default: <out>/manual_grades.csv)")
     ap.add_argument("--apply-grades", type=Path, metavar="CSV", help="add the manual grades from this sheet to the report")
@@ -317,23 +361,31 @@ def main(argv: list[str] | None = None, service=None) -> int:
         summary["generation"] = old.get("generation", {})                         # keep earlier answer results
     else:
         rows = run_generation(case_id, questions, args.gen_configs, service or AnswerService(),
-                              GenCache(out / "gen_cache.jsonl"), args.fresh, log)
-        write_csv(out / "generation_by_question.csv", rows)
+                              GenCache(out / "gen_cache.jsonl"), args.fresh, log, args.refresh_citations)
+        write_csv(out / "generation_by_question.csv", [{k: v for k, v in r.items() if k != "citations"} for r in rows])
         summary["generation"] = summarize_generation(rows)
+        if any(r["config"] == "hybrid" for r in rows):
+            region = region_eval.region_report(indexer.case_chunks(case_id), questions, rows, {p.name: p for p in args.pdfs})
+            summary["region"] = region
+            if region["rows_without_detail"]:
+                log(f"{region['rows_without_detail']} cached hybrid answers have no citation detail: run again with "
+                    "--refresh-citations to ask those questions once more (a grade is dropped if the answer changes)")
+        graded_rows = [r for r in rows if r["config"] not in ABLATION_CONFIGS]
         if args.export_grading is not None:
             sheet = Path(args.export_grading) if args.export_grading else out / "manual_grades.csv"
-            n, kept, dropped = grading.export_template(rows, {q.id: q.expected_answer for q in questions},
+            n, kept, dropped = grading.export_template(graded_rows, {q.id: q.expected_answer for q in questions},
                                                        {q.id: q.question for q in questions}, sheet)
             log(f"grading sheet with {n} answers written to {sheet}: {kept} earlier grades kept, "
                 f"{dropped} dropped because the answer changed")
         if args.apply_grades:
             summary["manual"] = {"grader": args.grader, "file": args.apply_grades.name, "scale": grading.SCALE,
-                                 "configs": grading.summarize_grades(rows, grading.load_grades(args.apply_grades))}
+                                 "configs": grading.summarize_grades(graded_rows, grading.load_grades(args.apply_grades))}
 
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     (out / "meta.json").write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
-    report = markdown_report(meta, retrieval, by_category, summary["generation"], summary.get("manual"))
+    report = markdown_report(meta, retrieval, by_category, summary["generation"], summary.get("manual"),
+                             summary.get("region"))
     (out / "summary.md").write_text(report, encoding="utf-8")
     print(report)
     return 0

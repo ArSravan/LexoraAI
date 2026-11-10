@@ -143,7 +143,7 @@ def test_the_command_writes_csv_json_and_a_readme_ready_report(env, capsys):
     ret = list(csv.DictReader(open(out / "retrieval_by_question.csv", encoding="utf-8")))
     assert len(ret) == 5 * 2 and {r["id"] for r in ret} == {"F1", "F2"}              # 5 configurations, answerable questions only
     summary = json.loads((out / "summary.json").read_text())
-    assert set(summary) == {"meta", "retrieval", "by_category", "generation"} and set(summary["generation"]) == {"no_retrieval", "hybrid"}
+    assert set(summary) == {"meta", "retrieval", "by_category", "generation", "region"} and set(summary["generation"]) == {"no_retrieval", "hybrid"}
     assert summary["meta"]["n_questions"] == 3 and summary["meta"]["n_answerable"] == 2 and len(summary["meta"]["documents"][0]["sha256"]) == 64
     assert summary["meta"]["seed"] == 42 and summary["meta"]["ollama_model"] == "qwen3.5:9b"
     report = capsys.readouterr().out

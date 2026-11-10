@@ -75,7 +75,8 @@ def test_the_scanned_page_goes_through_the_real_ocr_path_and_is_read_accurately(
         assert not used and conf is None
         with pymupdf.open(digital) as one:
             scan = ocr_eval.scanned_pdf(one[0], tmp_path / "scan.pdf", dpi=200)
-    assert not pymupdf.open(scan)[0].get_text().strip()                      # really image-only
+    with pymupdf.open(scan) as scan_doc:
+        assert not scan_doc[0].get_text().strip()                            # really image-only
     text, conf, used = ocr_eval.page_text(scan, ocr_dpi=200)
     assert used and conf and conf > 60
     assert ocr_eval.compare(truth, text)["cer"] < 0.05

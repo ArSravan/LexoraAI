@@ -170,8 +170,9 @@ def fallback_check(pdf: Path, tmp: Path) -> dict:
         with pymupdf.open(digital) as one:
             only_scan = scanned_pdf(one[0], tmp / "fb_scan.pdf", dpi=150)
             mixed = pymupdf.open()
-            mixed.insert_pdf(pymupdf.open(digital))
-            mixed.insert_pdf(pymupdf.open(only_scan))
+            for part in (digital, only_scan):
+                with pymupdf.open(part) as src_part:
+                    mixed.insert_pdf(src_part)
             mixed.save(tmp / "fb_mixed.pdf")
             mixed.close()
     out = {}
