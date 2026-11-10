@@ -32,6 +32,7 @@ from generation.answer_generator import AnswerService
 from services import indexer
 from scripts.eval_retrieval import evaluate as evaluate_retrieval
 from scripts.search_pdf import ensure_indexed
+from services.paths import GlobPaths
 
 RESULTS = EVAL_DIR / "results"
 # the answer configurations that can be compared (the retrieval ones always rerank)
@@ -328,7 +329,7 @@ def run_meta(pdfs: list[Path], dataset_path: Path, questions: list[EvalQuestion]
 # ------------------------------------------------------------------------------ command line
 def main(argv: list[str] | None = None, service=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--dataset", type=Path, default=TEST_SET)
     ap.add_argument("--out", type=Path, default=RESULTS)
     ap.add_argument("--retrieval-only", action="store_true", help="skip the LLM")

@@ -33,6 +33,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from ingestion.pdf_parser import parse_pdf
 from ingestion.table_extractor import extract_tables
+from services.paths import GlobPaths
 
 RESULTS = Path(__file__).resolve().parent / "results"
 GRID = ("GRID", (0, 0), (-1, -1), 0.8, colors.black)
@@ -194,7 +195,7 @@ def markdown(result: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="*", type=Path, help="real documents to count tables in (optional)")
+    ap.add_argument("pdfs", nargs="*", action=GlobPaths, help="real documents to count tables in (optional)")
     ap.add_argument("--out", type=Path, default=RESULTS)
     a = ap.parse_args(argv)
     result = evaluate(a.pdfs)

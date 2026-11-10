@@ -62,6 +62,9 @@ python run.py                     # starts the API and the UI and opens http://1
 **Make.** `make setup`, then `make run`; `make help` lists every target (`make test`, `make eval`, `make extended`, `make report`,
 `make check`, `make docker-up`, ...).
 
+In every command below, `sample_docs/*.pdf` works in any shell: the scripts expand wildcards themselves, so PowerShell and cmd need no
+special handling.
+
 The two small Hugging Face models (embeddings and reranker, about 90 MB each) download on first use and are cached; after that the
 project works offline. Scanned pages need Tesseract (Windows: `winget install --id UB-Mannheim.TesseractOCR -e`; set
 `LEXORA_TESSERACT_CMD` if it is not in the default place; Debian/Ubuntu: `apt install tesseract-ocr`).

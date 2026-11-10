@@ -17,7 +17,7 @@ from pathlib import Path
 from ingestion.pdf_parser import sha256_file
 from retrieval.hybrid import retrieve
 from services import indexer
-from services.paths import chunks_file
+from services.paths import GlobPaths, chunks_file
 
 # (label, mode, rerank, decomposition)
 CONFIGS = [("BM25 only", "bm25", False, False), ("Dense only", "dense", False, False),
@@ -58,7 +58,7 @@ def show(label: str, hits, timings: dict, preview: int = 80) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("-q", "--question", required=True)
     ap.add_argument("--mode", choices=["bm25", "dense", "hybrid"], default="hybrid")
     ap.add_argument("--no-rerank", action="store_true")

@@ -26,6 +26,7 @@ from evaluation.dataset import DEV_SET, EVAL_DIR, TEST_SET, load_dataset
 from retrieval import hybrid
 from scripts.search_pdf import ensure_indexed
 from verification import evidence_checker
+from services.paths import GlobPaths
 
 THRESHOLDS = (-1.0, 0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0)
 
@@ -75,7 +76,7 @@ def markdown(result: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--out", type=Path, default=EVAL_DIR / "results")
     a = ap.parse_args(argv)
     s = get_settings()

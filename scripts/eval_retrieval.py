@@ -17,6 +17,7 @@ from pathlib import Path
 from evaluation.metrics import aggregate, retrieval_scores
 from retrieval.hybrid import retrieve
 from scripts.search_pdf import CONFIGS, ensure_indexed
+from services.paths import GlobPaths
 
 COLUMNS = ["recall@1", "recall@3", "recall@5", "full@5", "precision@5", "mrr"]
 
@@ -45,7 +46,7 @@ def format_table(summary: dict[str, dict], n: int) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--dataset", type=Path, required=True)
     ap.add_argument("--misses", action="store_true", help="list questions missing evidence in the top 5")
     args = ap.parse_args(argv)

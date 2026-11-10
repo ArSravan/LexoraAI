@@ -40,6 +40,7 @@ from ingestion.page_anomaly import (MIN_PAGES, ROBUST_K, page_features, reconstr
                                     robust_threshold)
 from ingestion.pdf_parser import parse_pdf
 from schemas import ParsedPage, TextLine
+from services.paths import GlobPaths
 
 RESULTS = Path(__file__).resolve().parent / "results"
 SEEDS = [42, 43, 44]
@@ -219,7 +220,7 @@ def markdown(r: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--no-ocr", action="store_true", help="skip the bad-scan defect")
     ap.add_argument("--out", type=Path, default=RESULTS)
     a = ap.parse_args(argv)

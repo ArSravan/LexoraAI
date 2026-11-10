@@ -33,6 +33,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 from ingestion import ocr
 from ingestion.pdf_parser import PDFValidationError, parse_pdf
+from services.paths import GlobPaths
 
 RESULTS = Path(__file__).resolve().parent / "results"
 SEED = 42
@@ -170,9 +171,8 @@ def fallback_check(pdf: Path, tmp: Path) -> dict:
         with pymupdf.open(digital) as one:
             only_scan = scanned_pdf(one[0], tmp / "fb_scan.pdf", dpi=150)
             mixed = pymupdf.open()
-            for part in (digital, only_scan):
-                with pymupdf.open(part) as src_part:
-                    mixed.insert_pdf(src_part)
+            mixed.insert_pdf(pymupdf.open(digital))
+            mixed.insert_pdf(pymupdf.open(only_scan))
             mixed.save(tmp / "fb_mixed.pdf")
             mixed.close()
     out = {}
@@ -207,7 +207,7 @@ def markdown(result: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--pages-per-doc", type=int, default=2)
     ap.add_argument("--out", type=Path, default=RESULTS)
     a = ap.parse_args(argv)

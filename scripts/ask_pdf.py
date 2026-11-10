@@ -17,6 +17,7 @@ from generation.answer_generator import AnswerService
 from generation.ollama_client import OllamaClient
 from schemas import AnswerResult
 from scripts.search_pdf import ensure_indexed
+from services.paths import GlobPaths
 
 CHECKS = [("document_exists", "document"), ("page_exists", "page"), ("clause_exists", "clause"),
           ("text_in_passage", "quote"), ("passage_retrieved", "retrieved"), ("supports_claim", "supports")]
@@ -60,7 +61,7 @@ def render(res: AnswerResult) -> str:
 
 def main(argv: list[str] | None = None, client=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("-q", "--question", required=True)
     ap.add_argument("--mode", choices=["bm25", "dense", "hybrid"], default=None)
     ap.add_argument("--no-rerank", action="store_true")

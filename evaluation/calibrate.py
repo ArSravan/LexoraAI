@@ -20,6 +20,7 @@ from evaluation.dataset import DEV_SET, EVAL_DIR, load_dataset
 from retrieval import hybrid
 from verification import evidence_checker
 from scripts.search_pdf import ensure_indexed
+from services.paths import GlobPaths
 
 ENV_KEYS = {"abstain_rerank_min": "LEXORA_ABSTAIN_RERANK_MIN", "abstain_coverage_min": "LEXORA_ABSTAIN_COVERAGE_MIN"}
 
@@ -103,7 +104,7 @@ def write_env(path: Path, updates: dict[str, float]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdfs", nargs="+", type=Path)
+    ap.add_argument("pdfs", nargs="+", action=GlobPaths)
     ap.add_argument("--dataset", type=Path, default=DEV_SET)
     ap.add_argument("--out", type=Path, default=EVAL_DIR / "results" / "calibration.json")
     ap.add_argument("--write-env", nargs="?", const="", metavar=".env", help="write the thresholds to .env (default: project .env)")
