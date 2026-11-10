@@ -20,6 +20,6 @@ torch==2.15.0
 transformers==5.22.1
 sentence-transformers==6.2.0
 
-# tests / fixtures
+# tests, test fixtures, and the generated PDFs of the table and ablation evaluations
 pytest==9.2.0
 reportlab==5.1.0
