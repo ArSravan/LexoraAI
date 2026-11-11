@@ -49,10 +49,10 @@ R["Dense only"].update({"recall@5": 0.55, "mrr": 0.45})
 R["Hybrid + rerank"].update({"recall@3": 0.75, "recall@5": 0.65, "mrr": 0.6, "latency_ms": 480.0})
 R["Hybrid + rerank + query decomposition"].update({"full@5": 0.8})
 SUMMARY_JSON = {
-    "meta": {"n_answerable": 11}, "retrieval": R,
+    "meta": {"n_answerable": 11, "n_questions": 15}, "retrieval": R,
     "by_category": {"multihop / Hybrid + rerank": {"full@5": 0.4}, "multihop / Hybrid + rerank + query decomposition": {"full@5": 0.6}},
-    "generation": {"no_retrieval": {"mean_total_s": 16.0, "answer_correct_proxy": 0.5},
-                   "hybrid": {"mean_total_s": 70.0, "answer_correct_proxy": 0.7, "citations_verified_rate": 0.96, "citation_precision": 0.75,
+    "generation": {"no_retrieval": {"mean_total_s": 16.0, "answer_correct_proxy": 0.5, "abstention_accuracy": 0.73},
+                   "hybrid": {"mean_total_s": 70.0, "answer_correct_proxy": 0.7, "abstention_accuracy": 0.93, "citations_verified_rate": 0.96, "citation_precision": 0.75,
                               "n_answerable": 11, "answerable_refused_ids": ["M1"], "false_abstention_rate": 0.09, "unsupported_claim_rate": 0.02},
                    "hybrid_noverify": {"mean_total_s": 69.0, "unsupported_claim_rate": 0.10, "false_abstention_rate": 0.0}},
     "manual": {"grader": "Sravan", "configs": {"no_retrieval": {"answerable_mean_score": 0.73, "unanswerable_handled_correctly": 0.5},
@@ -121,3 +121,59 @@ def test_check_covers_the_readme_block_too(tmp_path):
     assert report.main(args) == 0 and report.main([*args, "--check"]) == 0
     readme.write_text(readme.read_text(encoding="utf-8").replace("Run X", "Run Z"), encoding="utf-8")
     assert report.main([*args, "--check"]) == 1
+
+
+# ------------------------------------------------------------------------------ the headline block at the top of the README
+def test_the_headline_tables_contain_exactly_the_numbers_of_summary_json():
+    text = report.highlights(SUMMARY_JSON)
+    lines = text.splitlines()
+    assert lines[0] == "| | No retrieval (the model alone) | Lexora AI (hybrid, rerank, verifier) |"
+    assert "| Answerable questions: mean score graded by hand (0 to 1) | 0.73 | 0.91 |" in lines
+    assert "| Unanswerable questions handled correctly, graded by hand | 0.50 | 1.00 |" in lines
+    assert "| Right decision to answer or to refuse (automatic, all 15 questions) | 0.73 | 0.93 |" in lines
+    assert "| Citations that pass the validator | none | 0.96 |" in lines
+    assert "| Citations whose quote lies in the labelled clause (region level) | none | 0.70 |" in lines
+    assert "| Seconds per question (local model on a CPU) | 16 | 70 |" in lines
+    assert "| Retrieval configuration | recall@5 | MRR |" in lines and "| Dense only | 0.55 | 0.45 |" in lines
+    assert sum(1 for l in lines if l.startswith("| ") and "recall@5" not in l and "Retrieval" not in l) >= 8
+
+
+def test_without_manual_grades_the_headline_says_it_is_a_proxy():
+    s = json.loads(json.dumps(SUMMARY_JSON))
+    del s["manual"]
+    text = report.highlights(s)
+    assert "automatic proxy, not graded by hand" in text and "graded by hand (0 to 1)" not in text
+
+
+def test_partial_summaries_give_partial_headlines_and_nothing_gives_none():
+    assert report.highlights({}) is None
+    only_retrieval = report.highlights({"retrieval": SUMMARY_JSON["retrieval"]})
+    assert only_retrieval.startswith("| Retrieval configuration |") and "No retrieval (the model alone)" not in only_retrieval
+
+
+def test_both_readme_blocks_are_written_and_checked(tmp_path):
+    res = tmp_path / "res"
+    res.mkdir()
+    (res / "summary.md").write_text("Run X\n\n### Retrieval\n\n| a |\n|---|\n| 1 |\n", encoding="utf-8")
+    (res / "summary.json").write_text(json.dumps(SUMMARY_JSON), encoding="utf-8")
+    readme = tmp_path / "README.md"
+    readme.write_text(f"# T\n\n{report.H_START}\nOLD TOP\n{report.H_END}\n\nmiddle\n\n{report.START}\nOLD\n{report.END}\n\nend\n", encoding="utf-8")
+    assert not report.readme_is_current(readme, res)
+    assert report.update_readme(readme, res)
+    text = readme.read_text(encoding="utf-8")
+    assert "OLD" not in text and "middle" in text and text.endswith("\n\nend\n")
+    assert text.index(report.H_START) < text.index("| Lexora AI") < text.index(report.H_END) < text.index(report.START)
+    assert report.readme_is_current(readme, res)
+    readme.write_text(text.replace("| 0.91 |", "| 0.99 |", 1), encoding="utf-8")          # someone edits a headline number by hand
+    assert not report.readme_is_current(readme, res)
+    assert report.update_readme(readme, res) and report.readme_is_current(readme, res)
+
+
+def test_a_readme_without_highlight_markers_still_works(tmp_path):
+    res = tmp_path / "res"
+    res.mkdir()
+    (res / "summary.md").write_text("Run X\n", encoding="utf-8")
+    (res / "summary.json").write_text(json.dumps(SUMMARY_JSON), encoding="utf-8")
+    readme = tmp_path / "README.md"
+    readme.write_text(f"{report.START}\n{report.END}\n", encoding="utf-8")
+    assert report.update_readme(readme, res) and report.readme_is_current(readme, res)
