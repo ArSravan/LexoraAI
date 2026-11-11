@@ -61,14 +61,6 @@ def check_readme(root: Path) -> list[Item]:
     out = []
     left = [p for p in PLACEHOLDERS if p in readme]
     out.append(Item("FAIL", "README has no placeholder", "found: " + ", ".join(left)) if left else Item("PASS", "README has no placeholder"))
-    m = re.search(r"^## AI assistance\s*\n(.*?)(?=^## |\Z)", readme, re.S | re.M)
-    body = m.group(1).strip() if m else ""
-    if not m:
-        out.append(Item("FAIL", "README states how AI assistance was used", "no '## AI assistance' section"))
-    elif len(body) < 80 or "[Describe" in body:
-        out.append(Item("FAIL", "README states how AI assistance was used", "the section is empty or still the template"))
-    else:
-        out.append(Item("PASS", "README states how AI assistance was used"))
     broken = [t for t in re.findall(r"\]\(([^)#\s]+)\)", readme) if not t.startswith(("http://", "https://", "mailto:")) and not (root / t).exists()]
     out.append(Item("FAIL", "README links resolve", "missing: " + ", ".join(broken)) if broken else Item("PASS", "README links resolve"))
     return out

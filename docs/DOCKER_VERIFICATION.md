@@ -54,10 +54,24 @@ The sandbox could not do everything the real build does, so the test image diffe
 
 ## Your verification run
 
-Run on: _date, machine, Docker version_
+Run on: _date:2026-11-11, machine: Microsoft Windows 11 Home, Docker version: Docker version 29.1.2, build 890dcca
+```
+(.venv) PS C:\Users\arsra\Desktop\LexoraAI> python -m scripts.smoke_test --with-llm
+| Check | Result | Detail |
+|---|---|---|
+| API health | PASS | GET http://127.0.0.1:8000/api/health |
+| Ollama reachable from the API | PASS | http://host.docker.internal:11434 |
+| Model available in Ollama | PASS | qwen3.5:9b |
+| Tesseract (OCR) available in the API environment | PASS |  |
+| Upload accepted | PASS | ePrivacy_Directive_2002_58.pdf: HTTP 200 |
+| Indexing finished | PASS | done in 2 s; Done |
+| Pages and structure detected | PASS | 11 pages, 0 scanned, 21 headings |
+| Evidence page image rendered | PASS | 307184 bytes |
+| Unanswerable question is refused | PASS | abstained=True, confidence=INSUFFICIENT EVIDENCE, 10.2 s |
+| Grounded question answered with verified citations | PASS | confidence=HIGH, 3/3 claims verified, 104 s |
+| Test case deleted | PASS | HTTP 200 |
 
-```text
-paste the output of:  python -m scripts.smoke_test --with-llm
+RESULT: all checks passed
 ```
 
 | Item | Result |
