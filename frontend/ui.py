@@ -48,11 +48,16 @@ def page_rows(pages: list[dict]) -> list[dict]:
 
 def evidence_requests(result: dict) -> list[dict]:
     """Everything the evidence viewer needs for each cited passage of an answer: document id, 1-based page,
-    quote, chunk id. Evidence that cannot be located on a page is left out."""
-    out = []
+    quote, chunk id. Evidence that cannot be located on a page is left out. Several claims that cite the same
+    clause on the same page give one entry (the first quote), so the viewer does not offer the same page twice."""
+    out, seen = [], set()
     for ci, claim in enumerate(result.get("claims", []), 1):
         for ei, ev in enumerate(claim["evidence"], 1):
             if ev.get("document_id") and ev.get("page_index") is not None:
+                label = citation_label(ev["ref"])
+                if (ev["document_id"], ev["page_index"], label) in seen:
+                    continue
+                seen.add((ev["document_id"], ev["page_index"], label))
                 out.append({"key": f"c{ci}e{ei}", "document_id": ev["document_id"], "page_number": ev["page_index"] + 1,
                             "quote": ev["ref"].get("supporting_text", ""), "chunk_id": ev.get("matched_chunk_id") or "",
                             "label": citation_label(ev["ref"]), "status": ev["status"]})

@@ -2,7 +2,9 @@
 # Ollama must run on the host (ollama serve); the container reaches it through host.docker.internal.
 # No Ollama on the host?  docker compose --profile ollama up --build
 #   then:  docker compose exec ollama ollama pull qwen3.5:9b
-#   and start with LEXORA_OLLAMA_BASE_URL=http://ollama:11434 set (in .env or the shell).
+#   and start with LEXORA_DOCKER_OLLAMA_URL=http://ollama:11434 set (in .env or the shell).
+# The container's Ollama address comes from LEXORA_DOCKER_OLLAMA_URL, never from LEXORA_OLLAMA_BASE_URL in .env, which
+# is for running without Docker (there it means localhost, which inside a container would be the container itself).
 # Settings from a local .env (for example the thresholds written by evaluation.calibrate) are passed on.
 services:
   lexora:
@@ -16,7 +18,7 @@ services:
         required: false
     environment:                                  # these win over the .env file above
       LEXORA_STORAGE_DIR: /data                   # a host path in .env must not redirect the container's data
-      LEXORA_OLLAMA_BASE_URL: ${LEXORA_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LEXORA_OLLAMA_BASE_URL: ${LEXORA_DOCKER_OLLAMA_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"     # needed on Linux; Docker Desktop provides it already
     volumes:

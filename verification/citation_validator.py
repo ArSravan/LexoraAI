@@ -210,6 +210,18 @@ def validate_evidence(ref: EvidenceRef, claim: str, hits: list[RetrievedChunk], 
         section=ch.section if ch else "", source_text=ch.text if ch else "")
 
 
+def _quoted_numbers_cover(claim: str, quotes: list[str], status: str) -> str:
+    """Every number of a claim must be in the text QUOTED for it, not merely somewhere in the passage: a table
+    passage holds many numbers, and a figure taken from the wrong row would otherwise pass as supported."""
+    wanted = {n for n in numbers(claim) if not (n == int(n) and 1900 <= n <= 2100)}     # a year is context, not a figure
+    if not wanted:
+        return status
+    quoted: set[float] = set()
+    for q in quotes:
+        quoted |= numbers(q)
+    return status if wanted <= quoted else "PARTIAL"
+
+
 def validate_answer(answer: LLMAnswer, hits: list[RetrievedChunk], docs: list[CaseDoc],
                     quote_min: float = 0.85) -> list[VerifiedClaim]:
     """Verify every claim. A claim is VERIFIED if at least one of its evidence items is."""
@@ -221,5 +233,7 @@ def validate_answer(answer: LLMAnswer, hits: list[RetrievedChunk], docs: list[Ca
         ev = [validate_evidence(e, c.claim, hits, docs, quote_min) for e in c.evidence]
         statuses = {e.status for e in ev}
         status = "VERIFIED" if "VERIFIED" in statuses else ("PARTIAL" if "PARTIAL" in statuses else "UNVERIFIED")
+        if status == "VERIFIED":
+            status = _quoted_numbers_cover(c.claim, [e.supporting_text for e in c.evidence], status)
         out.append(VerifiedClaim(claim=c.claim, status=status, evidence=ev))
     return out

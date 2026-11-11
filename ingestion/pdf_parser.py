@@ -178,7 +178,7 @@ def _attach_tables(pages: list[ParsedPage], path: Path, warnings: list[str]) -> 
                                   and y0 - 2 <= (l.bbox[1] + l.bbox[3]) / 2 <= y1 + 2)]
             above = [l for l in page.lines if l.bbox[3] <= y0 + 2 and y0 - l.bbox[3] < 40
                      and _TABLE_CAPTION.match(l.text)]
-            if above:
+            if above and not t.caption:
                 t.caption = above[-1].text
             page.tables.append(t)
         page.char_count = sum(len(l.text) for l in page.lines)

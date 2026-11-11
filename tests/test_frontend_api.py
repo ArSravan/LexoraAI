@@ -116,3 +116,8 @@ def test_page_rows_and_evidence_requests_and_timings():
                    "label": "A.pdf, p.2, clause 3(2)", "status": "VERIFIED"}
     assert ui.timing_caption(result) == "retrieval 1.5s | total 9.0s | tokens 10 in / 5 out"
     assert ui.evidence_requests({}) == []
+    same = {"document_id": "d1", "page_index": 1, "matched_chunk_id": "d1-00007", "status": "VERIFIED",
+            "ref": {"document": "A.pdf", "page": 2, "clause": "3(2)", "supporting_text": "q"}}
+    other = {**same, "ref": {**same["ref"], "clause": "4(1)", "supporting_text": "r"}}
+    twice = {"claims": [{"claim": "a", "evidence": [same]}, {"claim": "b", "evidence": [{**same, "ref": {**same["ref"], "supporting_text": "later"}}, other]}]}
+    assert [(r["label"], r["quote"]) for r in ui.evidence_requests(twice)] == [("A.pdf, p.2, clause 3(2)", "q"), ("A.pdf, p.2, clause 4(1)", "r")]

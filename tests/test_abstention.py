@@ -87,7 +87,7 @@ def test_the_abstention_explains_what_was_searched_and_what_was_found():
     assert info["searched_documents"] == ["GDPR.pdf", "Act.pdf"] and info["looked_for"] == "Who regulates blockchain?"
     assert len(info["related_passages"]) == 3 and info["related_passages"][0]["clause"] == "30(1)"
     assert info["reasons"][-1] == "extra reason" and "blockchain" in info["explanation"]
-    assert "does not fill gaps with general legal knowledge" in info["explanation"]
+    assert "does not fill gaps with outside knowledge" in info["explanation"]
     assert info["features"] == {"top_score": 0.2, "coverage": 0.0}
 
 

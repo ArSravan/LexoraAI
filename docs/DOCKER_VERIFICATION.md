@@ -13,7 +13,7 @@ python -m scripts.smoke_test --with-llm       # checks the running container end
 Open <http://127.0.0.1:8501>. `docker compose down` stops it; the data volume is kept (`docker compose down -v` deletes it).
 `make docker-up`, `make docker-down` and `make docker-smoke` do the same.
 
-Without Ollama on the host: `docker compose --profile ollama up -d --build`, set `LEXORA_OLLAMA_BASE_URL=http://ollama:11434`
+Without Ollama on the host: `docker compose --profile ollama up -d --build`, set `LEXORA_DOCKER_OLLAMA_URL=http://ollama:11434`
 (in `.env` or the shell), then `docker compose exec ollama ollama pull qwen3.5:9b`.
 
 What the image contains: Python 3.12, Tesseract with English data, CPU-only PyTorch, the pinned requirements, the application,
@@ -86,6 +86,7 @@ RESULT: all checks passed
 | Symptom | Fix |
 |---|---|
 | `Ollama reachable` fails | Ollama must be running on the host. On Linux it must listen on all interfaces: `OLLAMA_HOST=0.0.0.0 ollama serve` (the container reaches the host through `host.docker.internal`). |
+| `Ollama reachable` fails and the address shown is `http://localhost:11434` | The container was given your local address. Since the fix in this repository the container takes its address from `LEXORA_DOCKER_OLLAMA_URL` and ignores `LEXORA_OLLAMA_BASE_URL` in `.env`; update to the current `docker-compose.yml`, then `docker compose up -d` (no rebuild needed). |
 | `Model available` fails | `ollama pull qwen3.5:9b` on the host (or `docker compose exec ollama ollama pull ...` with the profile). |
 | Port already in use | Stop the program using 8000 or 8501, or change the published ports in `docker-compose.yml`. |
 | Build is slow or fails downloading PyTorch | Use a mirror: `docker build --build-arg TORCH_INDEX=<index url> .` |

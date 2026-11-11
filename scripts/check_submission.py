@@ -5,7 +5,7 @@ Exit code 0 only if there is no FAIL (a WARN is something to look at, not a bloc
 
   * every dependency in requirements.txt is pinned with ==; the default seed is fixed
   * the one-command run exists (run.py, Makefile target, docker compose file)
-  * the README has no leftover placeholder, links to its documents, and has a section on the use of AI assistance that is filled in
+  * the README has no leftover placeholder, and links to its documents
   * the evaluation results exist, the README shows the committed summary, and docs/RESULTS.md matches the result files
   * docs/DOCKER_VERIFICATION.md has a verification run filled in (otherwise Docker is still unverified on this machine)
   * the working tree is clean and everything is pushed

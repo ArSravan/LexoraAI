@@ -22,7 +22,7 @@ def build_abstention(question: str, hits: list[RetrievedChunk], searched_docs: l
         + (f"Key terms not found in the retrieved text: {', '.join(missing)}. " if missing else "")
         + (f"Related passages were found ({len(related)}) but they do not answer the question. "
            if related else "No related passages were found. ")
-        + "Lexora AI does not fill gaps with general legal knowledge."
+        + "Lexora AI does not fill gaps with outside knowledge."
     )
     return {"answer": ABSTAIN_TEXT, "explanation": explanation, "searched_documents": searched_docs,
             "looked_for": question, "related_passages": related, "reasons": reasons,

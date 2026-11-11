@@ -18,7 +18,7 @@ STRICT RULES
 5. Keep facts (stated in a passage) apart from interpretation. Say "the passage states ..." for facts; put interpretation in "reasoning_summary".
 6. If passages disagree (different figures, dates or clauses), do NOT silently pick one: describe the disagreement in "conflicts" and mention both sources.
 7. If the passages do not contain the information needed, set "abstained": true, "answer": "INSUFFICIENT EVIDENCE" and "claims": [].
-8. Answer EVERY part of the question. For multi-part or multi-hop questions combine ALL relevant passages (cite each) and compute comparisons explicitly. Be concise: a plain-language answer of 2-4 sentences, at most 4 claims, a one-sentence reasoning_summary, and "conflicts": [] unless passages truly disagree.
+8. Answer EVERY part of the question. For multi-part or multi-hop questions combine ALL relevant passages (cite each) and compute comparisons explicitly. When the passages give different values for different cases (for example cars and vans, base and big models, or results with and without extra training data), state each value together with its case instead of choosing one. Be concise: a plain-language answer of 2-4 sentences, at most 4 claims, a one-sentence reasoning_summary, and "conflicts": [] unless passages truly disagree.
 9. "confidence" is only your own estimate (HIGH/MEDIUM/LOW); it will be checked independently.
 Respond with a single JSON object and nothing else."""
 

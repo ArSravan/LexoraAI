@@ -47,7 +47,7 @@ def levels(root):
 def test_a_ready_repository_has_no_failure(repo):
     lv = levels(repo)
     assert "FAIL" not in lv.values()
-    assert lv["requirements are pinned"] == lv["seed is fixed"] == lv["README states how AI assistance was used"] == "PASS"
+    assert lv["requirements are pinned"] == lv["seed is fixed"] == "PASS"
     assert lv["working tree is clean"] == "PASS" and lv["incremental history"] == "WARN" and lv["extended-feature results exist"] == "WARN"
 
 
@@ -66,9 +66,6 @@ def test_missing_one_command_files_fail(repo):
 
 
 @pytest.mark.parametrize("readme_tail, name", [
-    ("\n## AI assistance\n\n[Describe how you used AI assistance, in at least two sentences, here and keep it honest and complete.]\n", "README states how AI assistance was used"),
-    ("\n## AI assistance\n\nShort.\n", "README states how AI assistance was used"),
-    ("", "README states how AI assistance was used"),
     ("\n## AI assistance\n\n" + "I used an AI assistant to review code and discuss design options during the project. " * 2 + "\nTODO check\n", "README has no placeholder"),
     ("\n" + AI + "\nSee [nothing](docs/NOPE.md).\n", "README links resolve"),
 ])

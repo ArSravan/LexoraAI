@@ -10,6 +10,7 @@ survived the checks). Nothing the model says is shown as grounded unless a citat
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from typing import Callable
@@ -20,12 +21,15 @@ from config import Settings, get_settings
 from generation import prompts
 from generation.ollama_client import OllamaClient, OllamaError
 from retrieval import hybrid
+from retrieval.synonyms import expand_query
 from schemas import AnswerResult, Conflict, LLMAnswer, VerifiedClaim
 from services import db, indexer
 from textutil import clause_key
 from verification import abstention, citation_validator, conflict_detector, evidence_checker
 from verification.citation_validator import CaseDoc
 from verification.evidence_checker import Sufficiency
+
+log = logging.getLogger(__name__)
 
 
 class StaleIndexError(RuntimeError):
@@ -106,6 +110,9 @@ class AnswerService:
             try:
                 return parse_llm_json(r2.content), {**usage, "raw": r2.content}
             except (ValueError, ValidationError) as e:
+                # keep what the model sent, so a failure can be diagnosed (cut off by num_predict? prose? wrong shape?)
+                log.warning("Invalid JSON from %s after a repair request (%s). First reply (%d chars, %d tokens): %.1500s",
+                            self.client.model, e, len(r.content), usage["completion"], r.content)
                 raise AnswerFormatError("The model did not return a valid JSON answer, even after a repair request.") from e
 
     # ------------------------------------------------------------------ the pipeline
@@ -142,7 +149,8 @@ class AnswerService:
             if not use_retrieval:
                 return self._no_retrieval(res, question, on_token, t_start)
             status("Retrieving passages (BM25 + dense + RRF)" if mode == "hybrid" else f"Retrieving passages ({mode})")
-            hits, tm = hybrid.retrieve(case_id, question, mode, final_k=final_k, rerank=rerank)
+            search_q = expand_query(question)          # document wording added: 'vans' -> 'light commercial vehicles'
+            hits, tm = hybrid.retrieve(case_id, search_q, mode, final_k=final_k, rerank=rerank)
             res.retrieved = hits
             known = {d.document_id for d in docs}
             if any(h.chunk.document_id not in known for h in hits):
@@ -152,7 +160,7 @@ class AnswerService:
                     "storage/cases and storage/chroma and upload them again.")
             res.timings.update({"retrieval_s": tm["search_s"], "rerank_s": tm["rerank_s"]})
 
-            suff = evidence_checker.assess(question, hits, s)
+            suff = evidence_checker.assess(search_q, hits, s)
             names = [d.filename for d in docs]
             if not suff.sufficient:
                 return self._abstain(res, question, hits, names, suff, t_start)

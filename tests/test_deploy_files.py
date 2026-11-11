@@ -69,3 +69,13 @@ def test_the_makefile_has_the_docker_targets():
     for target in ("docker-build:", "docker-up:", "docker-down:", "docker-smoke:"):
         assert target in make
     assert "docker compose up -d --build" in make and "scripts.smoke_test" in make
+
+
+def test_the_container_takes_its_ollama_address_from_its_own_variable_not_from_the_local_env_file():
+    compose, example = read("docker-compose.yml"), read(".env.example")
+    env_block = _service(compose, "lexora").split("environment:")[1]
+    assert "LEXORA_OLLAMA_BASE_URL: ${LEXORA_DOCKER_OLLAMA_URL:-http://host.docker.internal:11434}" in env_block
+    assert "${LEXORA_OLLAMA_BASE_URL" not in compose                    # .env may say localhost: that is for a run without Docker
+    active = [l for l in example.splitlines() if l.startswith("LEXORA_OLLAMA_BASE_URL=")]
+    assert active == ["LEXORA_OLLAMA_BASE_URL=http://localhost:11434"]  # the example works for a normal local run
+    assert "host.docker.internal" not in "\n".join(l for l in example.splitlines() if not l.startswith("#"))
