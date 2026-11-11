@@ -11,11 +11,11 @@ history is the record of what was added and when.
 
 ## See it in 35 seconds
 
-[![Lexora AI in 35 seconds: documents indexed, a verified answer with its cited page, and a refusal](docs/lexora-demo.jpg)](docs/lexora-demo.mp4)
+![Lexora AI in 35 seconds: documents indexed, a verified answer with its cited page, and a refusal](docs/lexora-demo.gif)
 
-Click the image to play the video ([docs/lexora-demo.mp4](docs/lexora-demo.mp4)): the documents are indexed, a question gets an answer whose
-citations the program has checked, and a question the documents cannot answer is refused. The screens are recreated from the application's real
-copy. Music: Sascha Ende, [ende.app](https://ende.app/en) (CC BY 4.0).
+The documents are indexed, a question gets an answer whose citations the program has checked, and a question the documents cannot answer is
+refused. The screens are recreated from the application's real copy. The animation above has no sound; download
+[docs/lexora-demo.mp4](docs/lexora-demo.mp4) for the version with music (Music: Sascha Ende, [ende.app](https://ende.app/en), CC BY 4.0).
 
 ## For the reader: what was asked and what was done
 
