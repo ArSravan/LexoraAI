@@ -6,7 +6,7 @@
 Nothing is typed by hand: each section is the Markdown file that the corresponding script wrote, so the page cannot
 disagree with the measurements. The "Reading the numbers" sentences are produced from summary.json, with the direction
 words (raises, lowers) and every number computed, so they cannot go stale when the evaluation is run again. A section
-whose script has not been run says which command to run. The README block sits between two marker comments.
+whose script has not been run says which command to run. The README blocks (the headline results near the top and the full results) sit between marker comments.
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ RESULTS = ROOT / "evaluation" / "results"
 TARGET = ROOT / "docs" / "RESULTS.md"
 README = ROOT / "README.md"
 START, END = "<!-- RESULTS:START -->", "<!-- RESULTS:END -->"
+H_START, H_END = "<!-- HIGHLIGHTS:START -->", "<!-- HIGHLIGHTS:END -->"
 LABELS = ["BM25 only", "Dense only", "Hybrid (BM25 + dense, RRF)", "Hybrid + rerank", "Hybrid + rerank + query decomposition"]
 
 # (file, heading, what it shows, the command that produces it)
@@ -115,6 +116,42 @@ def reading(summary: dict) -> str:
     return "\n".join(f"* {b}" for b in out)
 
 
+def highlights(summary: dict) -> str | None:
+    """The few numbers a reader should see first, as two small tables, all taken from summary.json."""
+    gen, r = summary.get("generation") or {}, summary.get("retrieval") or {}
+    base, hyb = gen.get("no_retrieval"), gen.get("hybrid")
+    manual = (summary.get("manual") or {}).get("configs", {})
+    region = summary.get("region") or {}
+    out: list[str] = []
+    if base and hyb:
+        def f(v, d=2):
+            return "none" if v is None else f"{v:.{d}f}"
+        m0, m1 = manual.get("no_retrieval"), manual.get("hybrid")
+        n = (summary.get("meta") or {}).get("n_questions", "?")
+        rows = []
+        if m0 and m1:
+            rows += [("Answerable questions: mean score graded by hand (0 to 1)", f(m0["answerable_mean_score"]), f(m1["answerable_mean_score"])),
+                     ("Unanswerable questions handled correctly, graded by hand", f(m0["unanswerable_handled_correctly"]), f(m1["unanswerable_handled_correctly"]))]
+        else:
+            rows.append(("Answerable questions: key facts present (automatic proxy, not graded by hand)", f(base.get("answer_correct_proxy")), f(hyb.get("answer_correct_proxy"))))
+        if "abstention_accuracy" in base and "abstention_accuracy" in hyb:
+            rows.append((f"Right decision to answer or to refuse (automatic, all {n} questions)", f(base["abstention_accuracy"]), f(hyb["abstention_accuracy"])))
+        if hyb.get("citations_verified_rate") is not None:
+            rows.append(("Citations that pass the validator", "none", f(hyb["citations_verified_rate"])))
+        if region.get("n_citations"):
+            rows.append(("Citations whose quote lies in the labelled clause (region level)", "none", f(region["region_precision"])))
+        if "mean_total_s" in base and "mean_total_s" in hyb:
+            rows.append(("Seconds per question (local model on a CPU)", f"{base['mean_total_s']:.0f}", f"{hyb['mean_total_s']:.0f}"))
+        out += ["| | No retrieval (the model alone) | Lexora AI (hybrid, rerank, verifier) |", "|---|---|---|"]
+        out += [f"| {a} | {b} | {c} |" for a, b, c in rows]
+    if r:
+        if out:
+            out.append("")
+        out += ["| Retrieval configuration | recall@5 | MRR |", "|---|---|---|"]
+        out += [f"| {label} | {m['recall@5']:.2f} | {m['mrr']:.2f} |" for label, m in r.items()]
+    return "\n".join(out) if out else None
+
+
 def summary_section(results: Path = RESULTS) -> str | None:
     """summary.md followed by the generated 'Reading the numbers', or None when there is no summary yet."""
     f = results / "summary.md"
@@ -134,20 +171,39 @@ def readme_block(results: Path = RESULTS) -> str | None:
     return None if text is None else demote(text, 1)
 
 
+def _highlights_block(results: Path) -> str | None:
+    try:
+        return highlights(json.loads((results / "summary.json").read_text(encoding="utf-8")))
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def _swap(text: str, start: str, end: str, block: str) -> str:
+    head, rest = text.split(start, 1)
+    _, tail = rest.split(end, 1)
+    return f"{head}{start}\n\n{block}\n\n{end}{tail}"
+
+
 def update_readme(readme: Path, results: Path = RESULTS) -> bool:
-    """Replace the text between the markers. False if the README has no markers or there is no summary."""
+    """Replace the text between the RESULTS markers (and between the HIGHLIGHTS markers when the README has them).
+    False if the README has no RESULTS markers or there is no summary."""
     block, text = readme_block(results), readme.read_text(encoding="utf-8") if readme.is_file() else ""
     if block is None or START not in text or END not in text:
         return False
-    head, rest = text.split(START, 1)
-    _, tail = rest.split(END, 1)
-    readme.write_text(f"{head}{START}\n\n{block}\n\n{END}{tail}", encoding="utf-8", newline="\n")
+    text = _swap(text, START, END, block)
+    top = _highlights_block(results)
+    if top is not None and H_START in text and H_END in text:
+        text = _swap(text, H_START, H_END, top)
+    readme.write_text(text, encoding="utf-8", newline="\n")
     return True
 
 
 def readme_is_current(readme: Path, results: Path = RESULTS) -> bool:
     block, text = readme_block(results), readme.read_text(encoding="utf-8") if readme.is_file() else ""
-    return block is not None and START in text and END in text and f"{START}\n\n{block}\n\n{END}" in text
+    if block is None or START not in text or END not in text or f"{START}\n\n{block}\n\n{END}" not in text:
+        return False
+    top = _highlights_block(results)
+    return top is None or H_START not in text or f"{H_START}\n\n{top}\n\n{H_END}" in text
 
 
 def build(results: Path = RESULTS) -> str:

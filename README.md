@@ -1,37 +1,125 @@
 # Lexora AI
 
-**Every answer has evidence.** A local-first analyst for legal PDFs: upload 2-5 documents, ask a question, and get an answer in plain
-language in which every claim carries a document, a page, a clause and a quote that the program has checked itself against the
-source. When the documents do not contain enough evidence, it says so and names what it searched, instead of guessing.
+**Every answer has evidence.** An evidence-grounded analyst for legal PDFs (project *LexiSyncAI*, Deep Learning & GenAI, final assignment).
+You upload 2-5 public legal documents, ask a question, and get a plain-language answer in which **every claim carries a document, a page,
+a clause and a quote that the program has checked itself against the source**. When the documents do not contain enough evidence, the
+system refuses and says what it searched, instead of guessing.
 
-Everything runs on your own machine (a local language model through Ollama, local embeddings and reranker): no document, question
-or answer leaves it. This repository was started on 2026-11-04 as a fresh, step-by-step re-implementation of an earlier private
-prototype; the commit history is the record of what was added and when.
+Everything runs on one machine: a local language model through Ollama, local embeddings and a local reranker. No document, question or
+answer leaves it. This repository was started on 2026-11-04 as a step-by-step re-implementation of an earlier private prototype; its commit
+history is the record of what was added and when.
 
-## What it does
+## See it in 35 seconds
 
-1. **Cases and documents.** Create a case, drop in PDFs. The system indexes them in the background and shows what it found: pages,
-   sections and clauses, tables, scanned pages (recovered with OCR), and pages that look unusual.
-2. **Ask.** Choose the search mode, reranking and number of passages, or switch retrieval off for the no-retrieval baseline. The answer
-   shows a confidence badge (HIGH / MEDIUM / LOW / INSUFFICIENT EVIDENCE), the claims with their citations and the six verification
-   checks each, any conflict or comparison between sources, and the cited page with the quote highlighted next to it.
-3. **Abstain.** A question the documents cannot answer is refused before the language model is called, with the reason, the
-   documents that were searched, and the closest passages.
-4. **Measure.** The Dashboard, Evaluation and Settings pages show the status of the system, the measured results, and the settings.
+[![Lexora AI in 35 seconds: documents indexed, a verified answer with its cited page, and a refusal](docs/lexora-demo.jpg)](docs/lexora-demo.mp4)
 
-| Area | What is implemented | Where |
+Click the image to play the video ([docs/lexora-demo.mp4](docs/lexora-demo.mp4)): the documents are indexed, a question gets an answer whose
+citations the program has checked, and a question the documents cannot answer is refused. The screens are recreated from the application's real
+copy. Music: Sascha Ende, [ende.app](https://ende.app/en) (CC BY 4.0).
+
+## For the reader: what was asked and what was done
+
+The three tables follow the assignment text: the application flow (section 2), the core technical requirements (section 3) and the
+deliverables (section 6). The optional features (section 4) are further down.
+
+**Application flow (assignment section 2)**
+
+| Step of the flow | How it works here |
+|---|---|
+| A user opens the application, creates a case and uploads 2-5 PDFs | *Cases and documents* page; at most 5 documents per case; `python -m scripts.download_sample_docs` fetches public PDFs from a URL |
+| The system indexes them and shows the detected structure (pages, sections, tables, scanned pages flagged) | progress bar while indexing, then a per-page table (characters, text layer or OCR, tables, unusual-page flag) and the number of articles and clauses found |
+| The user asks a question | *Ask* page |
+| The answer is correct and combines passages, for example two clauses or a cap against a total | multi-hop retrieval (query decomposition) and a numeric comparison computed from the cited figures |
+| Citations give page and clause, and the cited text and page are shown side by side | every claim lists its citations with six verification checks; a toggle shows the cited page with the quote highlighted next to them |
+| A confidence badge: HIGH / MEDIUM / LOW / INSUFFICIENT EVIDENCE | computed from the verification results, not taken from the model |
+| An explanation, including what to do when sources conflict | `reasoning_summary`, and conflicts between sources are shown, never silently resolved |
+| A follow-up that the documents cannot answer: the system abstains and states which documents were searched | the sufficiency gate refuses before the model is called and lists the documents, the reason and the closest passages |
+
+**Core technical requirements (assignment section 3)**
+
+| Requirement | What was built | Evidence |
 |---|---|---|
-| Ingestion | PDF validation (name, `%PDF` header, size, encryption, duplicates), reading order for two columns, header, footer and footnote handling, page index and bounding box on every line | `ingestion/pdf_parser.py`, `ingestion/cleaning.py` |
-| Scans | image-only pages are flagged and read with Tesseract; without OCR they stay flagged and are never silently dropped | `ingestion/ocr.py` |
-| Tables | ruled tables with pdfplumber, caption attached, cells indexed with their column headers | `ingestion/table_extractor.py` |
-| Structure | legal structure (chapter, article, clause, point) found by a state machine with sequence checks; clause-aware parent/child chunks | `ingestion/structure_detector.py`, `ingestion/chunker.py` |
-| Retrieval | BM25 with a clause-number-aware tokenizer + dense MiniLM embeddings (cached) in ChromaDB, merged by Reciprocal Rank Fusion, reranked by a cross-encoder, query decomposition for compound questions | `retrieval/` |
-| Generation | local Ollama model (`qwen3.5:9b`), JSON output validated by Pydantic, prompt that marks document text as untrusted data | `generation/` |
-| Verification | six checks per citation (document, page, clause, quote, retrieved, supports the claim); one rewrite when the draft is rejected; confidence computed from the checks | `verification/citation_validator.py` |
-| Abstention | evidence-sufficiency gate (best rerank score and key-term coverage) before the model is called | `verification/evidence_checker.py`, `verification/abstention.py` |
-| Sources that disagree | numeric comparison and cross-document conflict detection, shown and not silently resolved | `verification/conflict_detector.py` |
-| Application | FastAPI (upload validation, background jobs with progress, streaming answers, evidence page images) and a Streamlit UI | `api/`, `frontend/`, `services/` |
-| Evaluation | validated held-out and dev question sets, retrieval and answer metrics, cached resumable runs, human grading, threshold calibration, and the extended-feature evaluations below | `evaluation/` |
+| §3.1 Ingestion and extraction: reading order (columns, headers, footers, footnotes), scanned pages flagged, clause-aware chunking | PyMuPDF extraction with page index and bounding box on every line, two-column order, header/footer/footnote handling, Tesseract OCR for image-only pages, legal structure detection (article, clause, point) and parent/child chunks | `ingestion/`, `tests/`, OCR evaluation in [docs/RESULTS.md](docs/RESULTS.md) |
+| §3.2 Hybrid retrieval and reranking, recall@k per configuration | BM25 with a clause-number-aware tokenizer + dense MiniLM embeddings, merged by Reciprocal Rank Fusion, reranked by a cross-encoder, plus query decomposition | `retrieval/`; recall@1/3/5, full@5, precision@5 and MRR for five configurations under [Results](#results) |
+| §3.3 Local LLM answers with page-level citations; the UI shows the cited page | Ollama (`qwen3.5:9b`), JSON output validated by Pydantic; six checks per citation; the page image with the quote highlighted | `generation/`, `verification/citation_validator.py`, `services/render.py` |
+| §3.4 Abstention, and abstention accuracy on unanswerable questions | evidence-sufficiency gate (best rerank score and key-term coverage), thresholds calibrated on a separate dev set | `verification/evidence_checker.py`, `evaluation/calibrate.py`; abstention accuracy under [Results](#results) |
+| §3.5 Evaluation: at least 15 questions (factual, multi-hop across two pages, at least 3 unanswerable); manual correctness, citation precision, abstention, latency; one mandatory comparison | 15 held-out questions (6 factual, 5 multi-hop, 4 unanswerable) with labelled evidence, a separate 14-question dev set, hand grading, **both** comparisons (dense vs hybrid, and no retrieval vs retrieval) | `evaluation/`; [Results](#results) and [docs/EVALUATION_ANALYSIS.md](docs/EVALUATION_ANALYSIS.md) |
+
+**Deliverables (assignment section 6)**
+
+| Deliverable | Where |
+|---|---|
+| Documentation | this README and [docs/](docs/): the one-page architecture diagram ([docs/overview.png](docs/overview.png)), [architecture.md](docs/architecture.md), [RESULTS.md](docs/RESULTS.md), [EXTENDED_FEATURES.md](docs/EXTENDED_FEATURES.md), [EVALUATION_ANALYSIS.md](docs/EVALUATION_ANALYSIS.md), [DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md), [UI_VERIFICATION.md](docs/UI_VERIFICATION.md) |
+| Codebase with an incremental commit history | this repository: every step, fix and measured result is its own commit |
+| One-command run | `docker compose up --build`, `python run.py`, or `make run` |
+| Pinned dependencies | every package in `requirements.txt` is pinned with `==`; the Docker image installs the same pins |
+| Fixed seeds | `LEXORA_SEED=42` (also sent to Ollama with temperature 0.1) and seed 42 in every evaluation script |
+| Tests | `python -m pytest -q`; the model, embeddings and reranker are replaced by fakes, so the suite runs offline in about a minute |
+
+**Extended features (assignment section 4): eight of the eleven are implemented and evaluated**; see [Extended features](#extended-features).
+
+## Headline results
+
+Measured on the 15 held-out questions with the local `qwen3.5:9b` model. The tables below are generated from `evaluation/results/` by
+`python -m evaluation.report`, so they cannot disagree with the full results further down. The manual grades are the author's own.
+
+<!-- HIGHLIGHTS:START -->
+
+| | No retrieval (the model alone) | Lexora AI (hybrid, rerank, verifier) |
+|---|---|---|
+| Answerable questions: mean score graded by hand (0 to 1) | 0.73 | 0.95 |
+| Unanswerable questions handled correctly, graded by hand | 0.50 | 1.00 |
+| Right decision to answer or to refuse (automatic, all 15 questions) | 0.73 | 1.00 |
+| Citations that pass the validator | none | 0.97 |
+| Citations whose quote lies in the labelled clause (region level) | none | 0.74 |
+| Seconds per question (local model on a CPU) | 16 | 78 |
+
+| Retrieval configuration | recall@5 | MRR |
+|---|---|---|
+| BM25 only | 0.85 | 0.75 |
+| Dense only | 0.59 | 0.50 |
+| Hybrid (BM25 + dense, RRF) | 0.83 | 0.73 |
+| Hybrid + rerank | 0.83 | 0.80 |
+| Hybrid + rerank + query decomposition | 0.89 | 0.86 |
+
+<!-- HIGHLIGHTS:END -->
+
+With 15 questions, one question moves a rate by 6-9 points: treat differences below about 10 points as noise. The complete tables, the
+reading of the numbers and the limits of the evaluation are under [Evaluation](#evaluation).
+
+## See it work in five minutes
+
+1. Start it (Docker, or Python as in [Quick start](#quick-start)); open <http://127.0.0.1:8501>.
+2. *Cases and documents*: create a case, upload the three public documents in `sample_docs/` (GDPR, ePrivacy Directive, Data Act).
+3. *Ask* these three questions, taken from the held-out set. The expected answers are the labelled ones; the model's wording differs.
+
+| Kind | Question | What the labels expect |
+|---|---|---|
+| factual | Within what time limit must a controller notify a personal data breach to the supervisory authority? | without undue delay and, where feasible, within 72 hours (GDPR Art. 33(1), p. 52) |
+| multi-hop | Under the GDPR, what is the maximum fine a company can receive, and which kinds of violations trigger the higher fine? | up to EUR 20 million or 4 % of worldwide annual turnover for the higher tier, EUR 10 million or 2 % for the lower (Art. 83(5) and 83(4), pp. 82-83) |
+| unanswerable | What is the maximum fine for very large online platforms under the Digital Services Act? | refusal: INSUFFICIENT EVIDENCE, because that regulation is not in the documents |
+
+For each answer, open the evidence toggle to see the cited page with the quote highlighted. The unanswerable question is refused in about a
+second, because the gate stops it before the model is called.
+
+## How it works
+
+![Architecture overview](docs/overview.png)
+
+The overview, the indexing diagram and the answering diagram, with the reasons behind each design decision, are in
+[docs/architecture.md](docs/architecture.md).
+
+1. **Retrieve** the best passages: BM25 and dense search, RRF fusion, cross-encoder rerank, sub-queries for compound questions.
+2. **Gate**: if the best relevance score or the question-term coverage is too low, answer `INSUFFICIENT EVIDENCE` without calling the model,
+   so the model never fills gaps from general knowledge.
+3. **Generate** a JSON answer from the numbered passages `[E1] ...`; document text is treated as untrusted data.
+4. **Verify** every citation independently: the document exists, the page exists, the clause exists, the quote occurs in the cited passage,
+   the passage was retrieved for this question, and it supports the claim's numbers and key terms. If the draft fails, the model is told why
+   and may rewrite it once.
+5. **Confidence** (HIGH / MEDIUM / LOW) is computed from the verification results, not taken from the model.
+
+Known limits: the validator checks lexical and numeric support, not logical entailment; an answer with some unverified claims is still shown
+(flagged, with lower confidence); conflict detection is heuristic.
 
 ## Quick start
 
@@ -41,7 +129,7 @@ You need Python 3.11+ and [Ollama](https://ollama.com/download) with the model p
 ollama pull qwen3.5:9b            # any other model works: set LEXORA_OLLAMA_MODEL
 ```
 
-**Docker (one command).** Ollama keeps running on the host; the container reaches it. How this was verified, and what was not, is in
+**Docker (one command).** Ollama keeps running on the host; the container reaches it. What was verified, and how, is in
 [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md).
 
 ```bash
@@ -62,11 +150,9 @@ python run.py                     # starts the API and the UI and opens http://1
 **Make.** `make setup`, then `make run`; `make help` lists every target (`make test`, `make eval`, `make extended`, `make report`,
 `make check`, `make docker-up`, ...).
 
-In every command below, `sample_docs/*.pdf` works in any shell: the scripts expand wildcards themselves, so PowerShell and cmd need no
-special handling.
-
-The two small Hugging Face models (embeddings and reranker, about 90 MB each) download on first use and are cached; after that the
-project works offline. Scanned pages need Tesseract (Windows: `winget install --id UB-Mannheim.TesseractOCR -e`; set
+In every command in this README, `sample_docs/*.pdf` works in any shell: the scripts expand wildcards themselves, so PowerShell and cmd need
+no special handling. The two small Hugging Face models (embeddings and reranker, about 90 MB each) download on first use and are cached; after
+that the project works offline. Scanned pages need Tesseract (Windows: `winget install --id UB-Mannheim.TesseractOCR -e`; set
 `LEXORA_TESSERACT_CMD` if it is not in the default place; Debian/Ubuntu: `apt install tesseract-ocr`).
 
 Command-line tools (no UI):
@@ -85,7 +171,7 @@ python -m scripts.ask_pdf contract.pdf -q "..." --no-retrieval   # the same mode
 | Cases and documents | create a case, upload PDFs with a progress bar, see per-page extraction (characters, scan or text layer, OCR confidence, tables, **unusual-page flag**), preview a page next to its extracted text, re-index, delete |
 | Ask | question, search mode, rerank on or off, number of passages, retrieval off for the baseline; answer with confidence, claims, citations, the six checks, comparisons and conflicts, and the evidence page with the quote highlighted (yellow) and the clause region outlined (blue) |
 | Dashboard | counters, the latest questions, status of the API, Ollama, the model, OCR, embeddings and reranker |
-| Evaluation | every measured result of this project in tables (read from `evaluation/results/`, nothing is computed in the browser) |
+| Evaluation | every measured result of this project in tables (read from `evaluation/results/`; nothing is computed in the browser) |
 | Settings | the settings in force and the environment variable that changes each one (read-only) |
 
 | Endpoint | Purpose |
@@ -99,24 +185,6 @@ python -m scripts.ask_pdf contract.pdf -q "..." --no-retrieval   # the same mode
 
 The interactive API documentation is at <http://127.0.0.1:8000/docs>.
 
-## How an answer is produced and checked
-
-![Architecture overview](docs/overview.png)
-
-The diagrams (overview, indexing, answering) and the reasons behind each design decision are in [docs/architecture.md](docs/architecture.md).
-
-1. **Retrieve** the best passages: BM25 + dense search, RRF fusion, cross-encoder rerank, sub-queries for compound questions.
-2. **Gate**: if the best relevance score or the question-term coverage is too low, answer `INSUFFICIENT EVIDENCE` without calling the
-   model (so the model never fills gaps from general knowledge).
-3. **Generate** a JSON answer from the numbered passages `[E1] ...` (document text is untrusted data).
-4. **Verify** every citation independently: the document exists, the page exists, the clause exists, the quote occurs in the cited
-   passage, the passage was retrieved for this question, and it supports the claim's numbers and key terms. If the draft fails, the
-   model is told why and may rewrite it once.
-5. **Confidence** (HIGH / MEDIUM / LOW) is computed from the verification results, not taken from the model.
-
-Known limits: the validator checks lexical and numeric support, not logical entailment; an answer with some unverified claims is still
-shown (flagged, with lower confidence); conflict detection is heuristic.
-
 ## Evaluation
 
 ```bash
@@ -124,36 +192,38 @@ python -m scripts.download_sample_docs                           # GDPR, ePrivac
 python -m evaluation.calibrate sample_docs/*.pdf --write-env     # thresholds from the DEV set -> .env
 python -m evaluation.evaluate sample_docs/*.pdf --retrieval-only # about 1 minute, no LLM
 python -m evaluation.evaluate sample_docs/*.pdf --gen-configs no_retrieval hybrid hybrid_noverify --export-grading
-python -m evaluation.report                                      # results block below + docs/RESULTS.md
+python -m evaluation.report                                      # the generated blocks of this README + docs/RESULTS.md
 ```
 
 * **Provenance.** Both question sets were written for the earlier private prototype of this project and are reused here unchanged; the
-  labels are re-checked against the PDFs by the tests below.
-* **Held-out set** `evaluation/dataset.json`: 15 questions (6 factual, 5 multi-hop, 4 unanswerable), each with an expected answer, key
-  facts and the labelled evidence (document, page, clause, a snippet). `tests/test_dataset.py` proves every snippet is on its labelled
-  page. **Dev set** `evaluation/calibration_set.json`: 14 different questions used ONLY by `evaluation.calibrate`; a test checks that
-  the two sets do not overlap.
+  labels are re-checked against the PDFs by the tests.
+* **Held-out set** `evaluation/dataset.json`: 15 questions (6 factual, 5 multi-hop, 4 unanswerable), each with an expected answer, key facts
+  and the labelled evidence (document, page, clause, a snippet). `tests/test_dataset.py` proves every snippet is on its labelled page.
+  **Dev set** `evaluation/calibration_set.json`: 14 different questions used ONLY by `evaluation.calibrate`; a test checks that the two sets
+  do not overlap.
 * **Mandatory comparisons**: dense vs hybrid retrieval (`recall@k`, `full@k`, `precision@5`, MRR, latency) and no-retrieval vs
   retrieval-enabled answers (key-fact correctness, citations verified, citation precision, abstention accuracy, false-abstention rate,
   latency, tokens). Fixed seed 42.
 * LLM answers take about 70-80 s each on a CPU. Each one is cached in `evaluation/results/gen_cache.jsonl` (not committed) as soon as it
   exists, so an interrupted run resumes; changing any setting that affects answers invalidates the cache.
-* **Human grading.** The "answer correct" number from the program is an automatic key-fact PROXY: it misses paraphrases and cannot judge
-  a refusal. `--export-grading` writes `evaluation/results/manual_grades.csv`; read each answer, enter 1 / 0.5 / 0 (scale in the file
-  `evaluation/grading.py`), then run the same command with `--apply-grades <file> --grader "<your name>"` (answers come from the cache,
-  the model is not asked again). The report names who graded and flags incomplete grading. The ablation configuration
-  `hybrid_noverify` is measured automatically and is not part of the hand-graded sheet.
-* A failed answer is never cached; cached answers that used retrieval are tied to the exact index, so indexing again makes them unusable
-  (the no-retrieval baseline is unaffected). A manual grade is kept only while the answer it was given to is unchanged. If answerable
-  questions are refused after the model answered, the report prints a WARNING: read `refusal_stage`, `refusal_reason` and
-  `verifier_note` in `generation_by_question.csv` before trusting the numbers.
+* **Human grading.** The "answer correct" number from the program is an automatic key-fact PROXY: it misses paraphrases and cannot judge a
+  refusal. `--export-grading` writes `evaluation/results/manual_grades.csv`; read each answer, enter 1 / 0.5 / 0 (scale in the file
+  `evaluation/grading.py`), then run the same command with `--apply-grades <file> --grader "<your name>"` (answers come from the cache, the
+  model is not asked again). The report names who graded and flags incomplete grading. The ablation configuration `hybrid_noverify` is
+  measured automatically and is not part of the hand-graded sheet.
+* A failed answer is never cached; cached answers that used retrieval are tied to the exact index, so indexing again makes them unusable (the
+  no-retrieval baseline is unaffected). A manual grade is kept only while the answer it was given to is unchanged. If answerable questions are
+  refused after the model answered, the report prints a WARNING: read `refusal_stage`, `refusal_reason` and `verifier_note` in
+  `generation_by_question.csv` before trusting the numbers.
 * Outputs in `evaluation/results/`: `summary.md` (tables), `summary.json`, `retrieval_by_question.csv`, `generation_by_question.csv`,
-  `meta.json` (models, library versions, thresholds, document hashes, git commit), `calibration.json`, and one `.md`/`.json` pair for
-  each extended-feature evaluation. [docs/RESULTS.md](docs/RESULTS.md) gathers all of them on one page.
+  `meta.json` (models, library versions, thresholds, document hashes, git commit), `calibration.json`, and one `.md`/`.json` pair for each
+  extended-feature evaluation. [docs/RESULTS.md](docs/RESULTS.md) gathers all of them on one page.
 
 ### Results
 
-The block between the markers is written by `python -m evaluation.report` from `evaluation/results/`; do not edit it by hand.
+The block between the markers is written by `python -m evaluation.report` from `evaluation/results/`; do not edit it by hand. The run was made
+on the working tree that became the commit "Use one query path everywhere"; `meta.json` records that commit's parent, because the run
+happened before the commit was made.
 
 <!-- RESULTS:START -->
 
@@ -245,17 +315,17 @@ Graded by: **Sravan** (file `manual_grades.csv`). Scale: answerable: 1 correct a
 * 15 questions: one question moves a rate by 6-9 points, so differences below about 10 points are noise.
 * The dev set has 14 questions, so the calibrated thresholds are approximate.
 * The automatic correctness proxy is not a human judgement; report the manual grades, and say who graded.
-* Query decomposition was added after looking at multi-hop failures of a similar prototype; its gain on this set is therefore optimistic.
+* Query decomposition was added after looking at multi-hop failures of a similar prototype, so its gain on this set is optimistic.
 * The citation validator checks lexical and numeric support, not logical entailment.
 * The thresholds of the sufficiency gate were calibrated on EU legal texts. Other kinds of documents have not been measured.
 * The extended-feature evaluations use small or synthetic ground truths (see [docs/EXTENDED_FEATURES.md](docs/EXTENDED_FEATURES.md)); they show
   what works and where it stops, they are not benchmarks.
-* A post-hoc analysis of the one false abstention is in [docs/EVALUATION_ANALYSIS.md](docs/EVALUATION_ANALYSIS.md).
+* A post-hoc analysis of the one false abstention found earlier is in [docs/EVALUATION_ANALYSIS.md](docs/EVALUATION_ANALYSIS.md).
 
 ## Extended features
 
-Eight of the eleven optional features of the assignment are implemented and have an evaluation; three are not. Details, how to reproduce
-each result, and the limits are in [docs/EXTENDED_FEATURES.md](docs/EXTENDED_FEATURES.md).
+Eight of the eleven optional features of the assignment are implemented and have an evaluation; three are not. Details, how to reproduce each
+result, and the limits are in [docs/EXTENDED_FEATURES.md](docs/EXTENDED_FEATURES.md).
 
 | # | Feature | Status | Evidence |
 |---|---|---|---|
@@ -276,10 +346,10 @@ each result, and the limits are in [docs/EXTENDED_FEATURES.md](docs/EXTENDED_FEA
 * **One command:** `python run.py`, `make run`, or `docker compose up --build`.
 * **Pinned dependencies:** every package in `requirements.txt` is pinned with `==`; the Docker image installs the same pins.
 * **Fixed seeds:** `LEXORA_SEED=42` (also sent to Ollama with temperature 0.1), seed 42 in every evaluation script.
-* **Tests:** `python -m pytest -q`. The language model, embeddings and reranker are replaced by fakes, so the suite runs offline in about a minute;
-  the few tests that need the real models or Tesseract are skipped when those are not installed.
-* **Self-check before handing in:** `python -m scripts.check_submission` lists what is still open (pins, placeholders, results out of
-  date, unpushed commits, ...).
+* **Tests:** `python -m pytest -q`. The language model, embeddings and reranker are replaced by fakes, so the suite runs offline in about a
+  minute; the few tests that need the real models or Tesseract are skipped when those are not installed.
+* **Self-check before handing in:** `python -m scripts.check_submission` lists what is still open (pins, placeholders, results out of date,
+  unpushed commits, ...).
 
 ## Project layout
 
@@ -405,27 +475,30 @@ the folder can have any name. `storage/` (uploaded files, indexes, database) and
 
 ## Limitations
 
+* A small hand-written vocabulary (`retrieval/synonyms.py`) adds the document's own wording to colloquial terms and abbreviations in a
+  question (vans, EN-DE, ZLEV, ablation, GDPR, ...). It was written while testing question answering on documents other than the
+  evaluation set, it applies to every question, and it is a patch for known cases, not a general solution to vocabulary mismatch. The same
+  testing led to a stricter number check in the citation validator, a better table extractor and OCR repair, and one extra rule in the
+  prompt; all evaluation numbers on this page were measured with all of these in place.
 * Only digital and OCR-readable text is searched; figures and charts are not read (no vision model). Tables are found only when they are
   drawn with ruling lines (a table with horizontal rules only, or none, is read as ordinary text).
-* The citation validator checks that a quote exists, was retrieved and shares numbers and key terms with the claim. It does not prove
-  logical entailment, and it does not require that every sentence of an answer has a citation.
-* The cross-encoder (`ms-marco-MiniLM`) can give a low score to a relevant passage; the gate then refuses a question that the documents
-  do answer (one of 11 answerable held-out questions). The thresholds were calibrated on EU legal texts only.
+* The citation validator checks that a quote exists, was retrieved and shares numbers and key terms with the claim. It does not prove logical
+  entailment, and it does not require that every sentence of an answer has a citation.
+* The cross-encoder (`ms-marco-MiniLM`) can give a low score to a relevant passage; the gate then refuses a question that the documents do
+  answer. The thresholds were calibrated on EU legal texts only.
 * A 9B model on a CPU takes about 70-80 s per answer.
 * The language of the documents and questions is English; the OCR language is a setting.
 * Conflict detection and numeric comparison are heuristic; they show what they found and do not resolve it.
-* Docker was verified in a Linux sandbox with stand-in models, not with the real models on the development machine (see
-  [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md)).
 
 ## Privacy and security
 
 * Documents, embeddings and prompts stay on this machine. The API listens on `127.0.0.1`; the Docker ports are published on `127.0.0.1` only.
-* An uploaded PDF is never served back as a file, only as rendered page images. Uploads are validated (extension, `%PDF` header, size
-  limit, encryption, duplicates) and a rejected upload leaves nothing behind.
-* Text inside a PDF is passed to the model as delimited, untrusted data; the validator still rejects any claim that is not supported by
-  a retrieved passage, so an injected instruction cannot create a verified citation.
-* No secrets are stored in the code; settings come from environment variables or a `.env` file that is not committed. The container runs
-  as an unprivileged user and Streamlit sends no usage statistics.
+* An uploaded PDF is never served back as a file, only as rendered page images. Uploads are validated (extension, `%PDF` header, size limit,
+  encryption, duplicates) and a rejected upload leaves nothing behind.
+* Text inside a PDF is passed to the model as delimited, untrusted data; the validator still rejects any claim that is not supported by a
+  retrieved passage, so an injected instruction cannot create a verified citation.
+* No secrets are stored in the code; settings come from environment variables or a `.env` file that is not committed. The container runs as
+  an unprivileged user and Streamlit sends no usage statistics.
 
 ## Documentation index
 
@@ -435,19 +508,5 @@ the folder can have any name. `storage/` (uploaded files, indexes, database) and
 | [docs/RESULTS.md](docs/RESULTS.md) | every measured result on one page, generated from `evaluation/results/` |
 | [docs/EXTENDED_FEATURES.md](docs/EXTENDED_FEATURES.md) | the eleven optional features: status, evidence, how to reproduce, limits |
 | [docs/EVALUATION_ANALYSIS.md](docs/EVALUATION_ANALYSIS.md) | who graded and how, the false abstention, what the numbers do and do not show |
-| [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md) | what was verified in Docker, what was not, and the run to fill in |
+| [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md) | what was verified in Docker and how |
 | [docs/UI_VERIFICATION.md](docs/UI_VERIFICATION.md) | what was checked in a real browser, and a checklist |
-
-## Assignment mapping
-
-| Requirement | Where |
-|---|---|
-| Ingest 2-5 public PDFs; flag scanned pages; page- and clause-aware chunking | `ingestion/`, Cases and documents page |
-| BM25 + dense + merge + cross-encoder rerank; recall@k per configuration | `retrieval/`, Results above |
-| Local LLM answer with page + clause citations; the UI shows the cited page | `generation/`, `verification/citation_validator.py`, Ask page |
-| Abstention and abstention accuracy | `verification/evidence_checker.py`, `verification/abstention.py`, Results above |
-| At least 15 held-out questions (factual, multi-hop, at least 3 unanswerable) | `evaluation/dataset.json` (6 / 5 / 4) |
-| Mandatory comparison | dense vs hybrid **and** no-retrieval vs retrieval (Results above) |
-| Extended features | the table above (8 of 11) |
-| One-command run, pinned dependencies, fixed seeds, documentation, tests | `run.py` / `make run` / `docker compose up`, `requirements.txt`, seed 42, this README, `tests/` |
-

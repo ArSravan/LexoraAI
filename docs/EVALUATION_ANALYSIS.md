@@ -35,24 +35,25 @@ answer is never silently matched to an old grade. The expected answers and the l
 
 ## 3. The false abstention
 
-The held-out question M1 ("Under the GDPR, what is the maximum fine a company can receive, and which kinds of violations trigger the
-higher fine?") is refused by the gate: its best cross-encoder score is 0.66, below the threshold 2.5 (`refusal_reason` in
-`evaluation/results/generation_by_question.csv`).
+**First run.** The held-out question M1 ("Under the GDPR, what is the maximum fine a company can receive, and which kinds of violations
+trigger the higher fine?") was refused by the gate: its best cross-encoder score was 0.66, below the threshold 2.5. The diagnostics
+(`python -m evaluation.diagnostics sample_docs/*.pdf`) showed that retrieval was not the problem: the labelled evidence (Article 83(4) and
+83(5)) was among the top five passages, but the cross-encoder scored it at 0.59 and 0.66. `ms-marco-MiniLM` is trained on web queries and
+answers, and a list-style legal clause ("Infringements of the following provisions shall ... be subject to administrative fines up to
+EUR 20 000 000 ...") can receive a near-zero logit for a question phrased with "maximum" and "kinds of violations" although it is the answer.
+The threshold was not lowered: choosing it because of what it does to the held-out set would be tuning on the test set.
 
-* **Is retrieval the problem?** `python -m evaluation.diagnostics sample_docs/*.pdf` prints the rank and the cross-encoder score of the
-  labelled evidence (Article 83(4) and 83(5)) for every question. In the earlier private prototype, with the same models and documents,
-  both were in the top five and scored 0.66 and 0.59. Run the diagnostics to see this for the current index: if the labelled passages are
-  in the top five with low scores, this is a scoring problem of the cross-encoder, not a retrieval failure.
-* **Why would the score be low?** `ms-marco-MiniLM` is trained on web queries and answers. A list-style legal clause ("Infringements of
-  the following provisions shall ... be subject to administrative fines up to EUR 20 000 000 ...") for a question phrased with
-  "maximum" and "kinds of violations" can receive a near-zero logit although it is exactly the answer.
-* **Why was the threshold not lowered?** The diagnostics table shows how the false-abstention and the correct-abstention rates move with
-  the threshold on the dev set and on the held-out set. Choosing a threshold because of what it does to the held-out set would be
-  tuning on the test set. The shipped value was chosen on the dev set only, where the unanswerable questions score close to the lowest
-  usable threshold, so a lower value leaves little margin.
-* **What would fix it properly?** A larger independent dev set (to place the threshold with confidence), or a better-calibrated
-  relevance signal: a legal-domain reranker, or letting borderline scores through to the model while keeping the citation validator and
-  abstaining if nothing verifies. None of this is implemented.
+**Final run.** After the later changes (the query vocabulary, the stricter number check, the table extractor, OCR repair and the prompt rule)
+M1 is no longer refused, and no answerable question is. The diagnostics explain how: the best score for M1 is now 6.54, but the labelled
+passages still score 0.59 and 0.83 (ranks 5 and 1). So the question passes the gate because **another passage** now scores high, not because the
+cross-encoder judges the labelled clause better. The vocabulary adds "General Data Protection Regulation" to every question that says "GDPR",
+which is the likely reason, but this was not isolated and the passage that scores 6.54 was not inspected. The scoring weakness of the
+cross-encoder on list-style clauses is therefore still there; this run does not show that it is fixed. The sensitivity table in
+[RESULTS.md](RESULTS.md) now shows the held-out set classified correctly at every threshold from 0 to 4, which reflects the same change.
+
+**What would fix the weakness properly:** a larger independent dev set (to place the threshold with confidence), or a better-calibrated
+relevance signal: a legal-domain reranker, or letting borderline scores through to the model while keeping the citation validator and
+abstaining if nothing verifies. None of this is implemented.
 
 ## 4. What the evaluation does not show
 

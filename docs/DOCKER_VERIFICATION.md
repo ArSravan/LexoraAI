@@ -44,19 +44,12 @@ The sandbox could not do everything the real build does, so the test image diffe
 * The language model was a stand-in HTTP server speaking Ollama's protocol, not Ollama and not `qwen3.5:9b`.
 * Linux host networking was used for the run (`--network host`), so the `host.docker.internal` mapping was not exercised.
 
-## Not verified in Docker (run these yourself and fill in the table below)
+## Verified on the development machine
 
-* the CPU-only PyTorch install and the Tesseract install inside the real image
-* the model download at build time
-* answers from the real model through the container, and `host.docker.internal` reaching Ollama on the host
-* Docker Desktop on Windows (the development machine)
-* the optional `ollama` profile
+Run on 2026-11-11: Windows 11 Home, Docker Desktop (Docker version 29.1.2, build 890dcca), Ollama running on the host with
+`qwen3.5:9b`, container started with `docker compose up -d --build`. Output of `python -m scripts.smoke_test --with-llm`:
 
-## Your verification run
-
-Run on: _date:2026-11-11, machine: Microsoft Windows 11 Home, Docker version: Docker version 29.1.2, build 890dcca
-```
-(.venv) PS C:\Users\arsra\Desktop\LexoraAI> python -m scripts.smoke_test --with-llm
+```text
 | Check | Result | Detail |
 |---|---|---|
 | API health | PASS | GET http://127.0.0.1:8000/api/health |
@@ -74,12 +67,14 @@ Run on: _date:2026-11-11, machine: Microsoft Windows 11 Home, Docker version: Do
 RESULT: all checks passed
 ```
 
-| Item | Result |
-|---|---|
-| `docker compose up -d --build` finished, image size | |
-| `docker ps` health | |
-| Smoke test: all checks PASS (including OCR and the grounded answer) | |
-| Time of the first grounded answer through the container | |
+This run covers what the sandbox run above could not: the build of the real Dockerfile on the development machine, Tesseract inside the
+image, the real model answering through the container, and `host.docker.internal` reaching Ollama on the host.
+
+## Still not verified
+
+* the optional `ollama` profile (`docker compose --profile ollama up`)
+* a Linux host: the `host-gateway` mapping and `OLLAMA_HOST=0.0.0.0`
+* whether the two small models were baked into the image at build time or downloaded on first use (the build output was not kept)
 
 ## Troubleshooting
 
