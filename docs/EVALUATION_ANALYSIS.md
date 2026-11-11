@@ -56,6 +56,12 @@ higher fine?") is refused by the gate: its best cross-encoder score is 0.66, bel
 
 ## 4. What the evaluation does not show
 
+* **Changes made after looking at other documents.** While testing question answering on documents outside the evaluation set,
+  four things were changed: a query vocabulary (`retrieval/synonyms.py`), a stricter number check in the validator (every number of a
+  claim must be in the quote cited for it), the table extractor and OCR repair, and one prompt rule. None of them was chosen by looking at
+  held-out answers, but the vocabulary contains "GDPR", which occurs in many held-out questions, so the held-out set is no longer
+  untouched by it. Retrieval, calibration, diagnostics and the answer pipeline all apply the vocabulary in the same way
+  (`retrieve()` does it itself), and the numbers were measured after these changes.
 * 15 held-out questions: one question moves a rate by 6-9 points; differences below about 10 points are noise.
 * The question sets were written for the earlier prototype and reused unchanged. Query decomposition was added after looking at
   multi-hop failures of a similar prototype, so its gain is optimistic.

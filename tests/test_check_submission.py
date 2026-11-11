@@ -7,7 +7,7 @@ from evaluation import report
 from scripts import check_submission as cs
 
 SUMMARY = "Run 2026-11-08\n\n| a | b |\n|---|---|\n| 1 | 2 |\n"
-AI = "## AI assistance\n\nI used an AI assistant to discuss design options and to review code. I wrote, ran and committed the code myself, and I checked every result.\n"
+NOTES = "## Notes\n\nSee the documents in docs/ for the design and the results.\n"
 
 
 def git(root, *args):
@@ -31,7 +31,7 @@ def repo(tmp_path):
     for n in ("summary.json", "retrieval_by_question.csv", "generation_by_question.csv", "manual_grades.csv", "meta.json"):
         (res / n).write_text("{}")
     (res / "summary.md").write_text(SUMMARY)
-    (r / "README.md").write_text(f"# Project\n\nSee [the results](docs/RESULTS.md).\n\n{report.START}\n{report.END}\n\n" + AI)
+    (r / "README.md").write_text(f"# Project\n\nSee [the results](docs/RESULTS.md).\n\n{report.START}\n{report.END}\n\n" + NOTES)
     report.update_readme(r / "README.md", res)
     (r / "docs" / "RESULTS.md").write_text(report.build(res))
     git(r, "init", "-q", "-b", "main")
@@ -66,8 +66,8 @@ def test_missing_one_command_files_fail(repo):
 
 
 @pytest.mark.parametrize("readme_tail, name", [
-    ("\n## AI assistance\n\n" + "I used an AI assistant to review code and discuss design options during the project. " * 2 + "\nTODO check\n", "README has no placeholder"),
-    ("\n" + AI + "\nSee [nothing](docs/NOPE.md).\n", "README links resolve"),
+    ("\n## Notes\n\n" + "See the documents in docs/ for the design. " * 2 + "\nTODO check\n", "README has no placeholder"),
+    ("\n" + NOTES + "\nSee [nothing](docs/NOPE.md).\n", "README links resolve"),
 ])
 def test_readme_problems_are_found(repo, readme_tail, name):
     (repo / "README.md").write_text(f"# P\n\n[results](docs/RESULTS.md)\n\n{report.START}\n{report.END}\n" + readme_tail)
@@ -82,7 +82,7 @@ def test_stale_results_in_the_readme_or_the_results_page_fail(repo):
 
 
 def test_a_readme_without_the_markers_fails_with_a_hint(repo):
-    (repo / "README.md").write_text("# P\n\n[r](docs/RESULTS.md)\n\n" + AI)
+    (repo / "README.md").write_text("# P\n\n[r](docs/RESULTS.md)\n\n" + NOTES)
     item = next(i for i in cs.run_checks(repo) if i.name == "README shows the committed summary")
     assert item.level == "FAIL" and "RESULTS:START" in item.detail
 

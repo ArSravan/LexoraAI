@@ -18,6 +18,7 @@ from pathlib import Path
 from config import ROOT, get_settings
 from evaluation.dataset import DEV_SET, EVAL_DIR, load_dataset
 from retrieval import hybrid
+from retrieval.synonyms import expand_query
 from verification import evidence_checker
 from scripts.search_pdf import ensure_indexed
 from services.paths import GlobPaths
@@ -30,7 +31,7 @@ def collect_features(case_id: str, questions) -> list[dict]:
     s, rows = get_settings(), []
     for q in questions:
         hits, _ = hybrid.retrieve(case_id, q.question)
-        suff = evidence_checker.assess(q.question, hits, s)
+        suff = evidence_checker.assess(expand_query(q.question), hits, s)
         rows.append({"id": q.id, "answerable": q.answerable, "top_score": suff.top_score, "coverage": suff.coverage})
     return rows
 

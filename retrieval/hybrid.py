@@ -15,6 +15,7 @@ from retrieval import vector_store
 from retrieval.bm25 import BM25Index
 from retrieval.embeddings import embed_query
 from retrieval.reranker import rerank as cross_rerank, score_pairs, sigmoid
+from retrieval.synonyms import expand_query
 from schemas import Chunk, RetrievedChunk
 from services.paths import chunks_file
 
@@ -152,6 +153,7 @@ def retrieve(case_id: str, query: str, mode: str | None = None, initial_k: int |
     With several queries a chunk's ``rerank_score`` is its BEST score over all queries: evidence that
     answers only one half of a two-part question must not look irrelevant.
     """
+    query = expand_query(query)                # the same wording for the answers, the evaluation and the scripts (idempotent)
     s = get_settings()
     final_k = final_k or s.final_top_k
     initial_k = initial_k or s.initial_top_k

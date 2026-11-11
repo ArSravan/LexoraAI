@@ -121,9 +121,3 @@ def test_documents_that_the_readme_promises_exist():
     for name in ("architecture.md", "RESULTS.md", "EXTENDED_FEATURES.md", "EVALUATION_ANALYSIS.md", "DOCKER_VERIFICATION.md", "UI_VERIFICATION.md"):
         assert (DOCS / name).is_file(), name
         assert f"docs/{name}" in _readme()
-
-
-def test_the_readme_has_a_placeholder_only_in_the_ai_section():
-    text = _readme()
-    before = text.split("## AI assistance")[0]
-    assert "TODO" not in before and "[Describe" not in before

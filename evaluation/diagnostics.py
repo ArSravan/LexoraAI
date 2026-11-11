@@ -24,6 +24,7 @@ from evaluation import metrics as M
 from evaluation.calibrate import score
 from evaluation.dataset import DEV_SET, EVAL_DIR, TEST_SET, load_dataset
 from retrieval import hybrid
+from retrieval.synonyms import expand_query
 from scripts.search_pdf import ensure_indexed
 from verification import evidence_checker
 from services.paths import GlobPaths
@@ -36,7 +37,7 @@ def features_with_gold(case_id: str, questions) -> list[dict]:
     s, rows = get_settings(), []
     for q in questions:
         hits, _ = hybrid.retrieve(case_id, q.question)
-        suff = evidence_checker.assess(q.question, hits, s)
+        suff = evidence_checker.assess(expand_query(q.question), hits, s)
         gold_ranks, gold_scores = [], []
         for e in q.evidence_dicts():
             pos = [i for i, h in enumerate(hits, 1) if M.chunk_matches(h.chunk, e)]
